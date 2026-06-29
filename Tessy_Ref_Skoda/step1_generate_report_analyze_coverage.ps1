@@ -46,41 +46,52 @@ Write-Host "====================================================================
 
 Write-Host "`n[CONNECT] Connecting to Tessy..." -ForegroundColor Yellow
 Set-Location $ScriptRoot
-tessycmd connect
+$tessy = Join-Path $ScriptRoot "tessycmd.exe"
+& $tessy connect
 if ($LASTEXITCODE -ne 0) { Write-Host "ERROR: Failed to connect to Tessy!" -ForegroundColor Red; exit 1 }
 Write-Host "Connected to Tessy." -ForegroundColor Green
 
 Write-Host "`n[SELECT] Selecting test object context..." -ForegroundColor Yellow
 Write-Host "  Project: $TessyProject" -ForegroundColor DarkGray
-tessycmd select-project "$TessyProject" 2>&1 | Out-Null
+& $tessy select-project "$TessyProject" 2>&1 | Out-Null
 if ($LASTEXITCODE -ne 0) { Write-Host "ERROR: Failed to select project '$TessyProject'" -ForegroundColor Red; exit 1 }
 
 Write-Host "  Test Collection: $TestCollection" -ForegroundColor DarkGray
-tessycmd select-test-collection "$TestCollection" 2>&1 | Out-Null
+& $tessy select-test-collection "$TestCollection" 2>&1 | Out-Null
 if ($LASTEXITCODE -ne 0) { Write-Host "ERROR: Failed to select test collection '$TestCollection'" -ForegroundColor Red; exit 1 }
 
 if ($Folder -ne "." -and $Folder -ne "" -and $null -ne $Folder) {
     $folders = $Folder -split '[/\\]'
     foreach ($folderLevel in $folders) {
         Write-Host "  Folder: $folderLevel" -ForegroundColor DarkGray
-        tessycmd select-folder "$folderLevel" 2>&1 | Out-Null
-        if ($LASTEXITCODE -ne 0) { Write-Host "ERROR: Failed to select folder '$folderLevel'" -ForegroundColor Red; exit 1 }
+        & $tessy select-folder "$folderLevel" 2>&1 | Out-Null
+        #if ($LASTEXITCODE -ne 0) { Write-Host "ERROR: Failed to select folder '$folderLevel'" -ForegroundColor Red; exit 1 }
     }
 }
 $ModuleName = $Module -replace '\.c$',''
+$noFolder = ($Folder -eq "." -or $Folder -eq "" -or $null -eq $Folder)
 # Try with .c extension first (some Tessy projects register modules with .c), then without
+# When no folder is selected, use -c to select module directly from the test collection
 Write-Host "  Module: $Module" -ForegroundColor DarkGray
-tessycmd select-module "$Module" 2>&1 | Out-Null
+if ($noFolder) {
+    & $tessy select-module -c "$Module" 2>&1 | Out-Null
+} else {
+    & $tessy select-module "$Module" 2>&1 | Out-Null
+}
 if ($LASTEXITCODE -ne 0) {
     Write-Host "  Module (retry without .c): $ModuleName" -ForegroundColor DarkGray
-    tessycmd select-module "$ModuleName" 2>&1 | Out-Null
+    if ($noFolder) {
+        & $tessy select-module -c "$ModuleName" 2>&1 | Out-Null
+    } else {
+        & $tessy select-module "$ModuleName" 2>&1 | Out-Null
+    }
     if ($LASTEXITCODE -ne 0) { Write-Host "ERROR: Failed to select module '$Module' or '$ModuleName'" -ForegroundColor Red; exit 1 }
 } else {
     $ModuleName = $Module
 }
 
 Write-Host "  Test Object: $TestObject" -ForegroundColor DarkGray
-tessycmd select-test-object "$TestObject" 2>&1 | Out-Null
+& $tessy select-test-object "$TestObject" 2>&1 | Out-Null
 if ($LASTEXITCODE -ne 0) { Write-Host "ERROR: Failed to select test object '$TestObject'" -ForegroundColor Red; exit 1 }
 Write-Host "Selection complete." -ForegroundColor Green
 
@@ -169,7 +180,7 @@ $utf8NoBom = New-Object System.Text.UTF8Encoding $false
 Write-Host "  Created batch file in tbs_files/: generate_report_${TestObject}_html.tbs" -ForegroundColor DarkGray
 
 Write-Host "Generating HTML report..." -ForegroundColor Yellow
-tessycmd -animate exec-test $batchFileHtml
+.\tessycmd.exe -animate exec-test $batchFileHtml
 
 Write-Host "  Batch file saved to tbs_files/ for Step 6:" -ForegroundColor Green
 Write-Host "    - generate_report_${TestObject}_html.tbs" -ForegroundColor DarkGray
@@ -228,7 +239,7 @@ if ($c0Coverage -gt 0) {
     if (-not (Test-Path $scriptDir)) { New-Item -ItemType Directory -Path $scriptDir -Force | Out-Null }
     Write-Host "`n[EXPORT SCRIPT] C0=$c0Coverage% > 0 -- exporting existing test case script..." -ForegroundColor Yellow
     Write-Host "  Output: $existingTestCase" -ForegroundColor DarkGray
-    tessycmd export -format script -expected -file ${TestObject}_testcase.script $scriptDir
+    & $tessy export -format script -expected -file ${TestObject}_testcase.script $scriptDir
     if ($LASTEXITCODE -eq 0) {
         Write-Host "  [OK] Script exported: $existingTestCase" -ForegroundColor Green
     } else {
