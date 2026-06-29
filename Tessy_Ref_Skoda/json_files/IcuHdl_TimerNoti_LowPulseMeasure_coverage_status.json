@@ -1,0 +1,13 @@
+﻿{
+    "TestObject":  "IcuHdl_TimerNoti_LowPulseMeasure",
+    "Module":  "IcuHdl_2_Cfg.c",
+    "C0":  90,
+    "C1":  75,
+    "Total":  4,
+    "Passed":  1,
+    "Failed":  3,
+    "FailureDetails":  [
+
+                       ],
+    "Timestamp":  "2026-05-04 16:37:01"
+}

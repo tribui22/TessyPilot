@@ -1,0 +1,13 @@
+﻿{
+    "TestObject":  "IcuHdl_TimerNoti_PreMeasure",
+    "Module":  "IcuHdl_2_Cfg.c",
+    "C0":  100,
+    "C1":  100,
+    "Total":  9,
+    "Passed":  9,
+    "Failed":  0,
+    "FailureDetails":  [
+
+                       ],
+    "Timestamp":  "2026-05-04 16:16:03"
+}

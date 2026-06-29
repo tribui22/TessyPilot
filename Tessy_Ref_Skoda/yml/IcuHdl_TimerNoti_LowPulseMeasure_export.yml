@@ -1,0 +1,57 @@
+Tessy: {Version: 4.3.19, File Type: Import/Export}
+---
+General: {Project: Chery_M1E_Variant, Testobject: IcuHdl_TimerNoti_LowPulseMeasure, PDB File: 'C:\Data\Project\208_Tessy_For_Chery_Project\03_Chery_M1E_Variant_v2\tessy\tessy.pdbx',
+  Tessy Version: 4.3.19, Export Date: '2026-05-04', Module: IcuHdl_2_Cfg.c}
+---
+Properties:
+- - '1'
+  - '0'
+  - ''
+  - IcuHdl_TimerNoti_LowPulseMeasure
+  - ''
+  - |-
+    [Test Goal]
+        Verify module design of IcuHdl_TimerNoti_LowPulseMeasure.
+    [Precondition]
+        Input values as specified in test step.
+    [Test Description]
+        Test IcuHdl_TimerNoti_LowPulseMeasure in case Function is called.
+    [Expected Result]
+        Output match expected results which specified in test steps.
+    [Post Condition]
+        None
+    [Test Type]
+        Tessy
+    [Priority]
+        Medium
+  - ''
+  - ''
+- ['1', '1', '', Index is valid, '', '', '', '']
+- ['1', '2', '', Index is valid, '', '', '', '']
+- ['1', '3', '', Index is invalid, '', '', '', '']
+- ['1', '4', '', Index is invalid, '', '', '', '']
+---
+Stubs:
+- ['0', '0', DioDrv_PinGet, 'return 0;']
+- ['0', '0', IcuHdl_DigitGet, 'return 0;']
+- ['0', '0', IcuHdl_IrqFlgClr, '']
+- ['0', '0', IcuHdl_Task_InitMeasure, '']
+- ['0', '0', IcuHdl_TimerDataGet, '']
+- ['0', '0', inDetApplMeasCallBack, '']
+- ['0', '0', IrqHdl_IrqFlgClr, '']
+- ['0', '0', TauDrv_TimerDataGet, '']
+---
+Values:
+- ['IcuHdl_PulseDataBak_st[0].highPulse_u16', 'IcuHdl_PulseDataBak_st[0].lowPulse_u16', 'IcuHdl_PulseDataBak_st[1].highPulse_u16', 'IcuHdl_PulseDataBak_st[1].lowPulse_u16',
+  'IcuHdl_PulseDataBak_st[2].highPulse_u16', 'IcuHdl_PulseDataBak_st[2].lowPulse_u16', locHdl_u8, 'IcuHdl_MeasureState_en[0]', 'IcuHdl_MeasureState_en[1]',
+  'IcuHdl_MeasureState_en[2]', 'IcuHdl_MeasureTimeOutCnt_u8[0]', 'IcuHdl_MeasureTimeOutCnt_u8[1]', 'IcuHdl_MeasureTimeOutCnt_u8[2]',
+  'IcuHdl_PulseDataBak_st[0].highPulse_u16', 'IcuHdl_PulseDataBak_st[0].lowPulse_u16', 'IcuHdl_PulseDataBak_st[1].highPulse_u16', 'IcuHdl_PulseDataBak_st[1].lowPulse_u16',
+  'IcuHdl_PulseDataBak_st[2].highPulse_u16', 'IcuHdl_PulseDataBak_st[2].lowPulse_u16', 'IcuHdl_PulseData_st[0].highPulse_u16', 'IcuHdl_PulseData_st[0].lowPulse_u16',
+  'IcuHdl_PulseData_st[1].highPulse_u16', 'IcuHdl_PulseData_st[1].lowPulse_u16', 'IcuHdl_PulseData_st[2].highPulse_u16', 'IcuHdl_PulseData_st[2].lowPulse_u16']
+- [i, i, i, i, i, i, i, o, o, o, o, o, o, o, o, o, o, o, o, o, o, o, o, o, o]
+- [tc1.1, '0', '0', '0', '0', '0', '0', '0', '1', '0', '0', '2', '0', '0', '0', '0', '0', '0', '0', '0', '0', '0', '0', '0', '0', '0']
+- [tc1.2, '0', '0', '0', '0', '0', '0', '1', '1', '1', '0', '2', '2', '0', '0', '0', '0', '0', '0', '0', '0', '0', '0', '0', '0', '0']
+- [tc1.3, '0', '0', '0', '0', '0', '0', '254', '1', '1', '0', '2', '2', '0', '0', '0', '0', '0', '0', '0', '0', '0', '0', '0', '0',
+  '0']
+- [tc1.4, '0', '0', '0', '0', '0', '0', '255', '1', '1', '0', '2', '2', '0', '0', '0', '0', '0', '0', '0', '0', '0', '0', '0', '0',
+  '0']

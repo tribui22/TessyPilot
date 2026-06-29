@@ -1,0 +1,44 @@
+{
+  "FunctionSignature": "void IcuHdl_TimerNoti_PreMeasure(u8 locHdl_u8)",
+  "TotalTestCases": 3,
+  "DefaultValues": [
+    { "N": "locHdl_u8", "V": "0" },
+    { "N": "IcuHdl_HwTauCfg_st[0].portIdx_u8", "V": "0" },
+    { "N": "IcuHdl_HwTauCfg_st[0].pinIdx_u8", "V": "0" },
+    { "N": "IcuHdl_HwTauCfg_st[0].timeOutCnt", "V": "0" }
+  ],
+  "TestCases": [
+    {
+      "TCId": 1,
+      "Description": "TC1: outer if TRUE, inner if TRUE — locHdl_u8=0 (< X_IcuHdl_TauDrv_Sizeof=3), IcuHdl_DigitGet returns DioDrv_Level_Low (0)",
+      "Target": "if ((u8)X_IcuHdl_TauDrv_Sizeof > locHdl_u8) TRUE; if (DioDrv_Level_Low == IcuHdl_DigitGet(...)) TRUE",
+      "SetValues": [],
+      "StubFunctions": [
+        { "Name": "IcuHdl_DigitGet", "Return": "0" },
+        { "Name": "DioDrv_PinGet",   "Return": "0" }
+      ]
+    },
+    {
+      "TCId": 2,
+      "Description": "TC2: outer if TRUE, inner if FALSE (else) — locHdl_u8=0 (< X_IcuHdl_TauDrv_Sizeof=3), IcuHdl_DigitGet returns 1 (not DioDrv_Level_Low)",
+      "Target": "if ((u8)X_IcuHdl_TauDrv_Sizeof > locHdl_u8) TRUE; if (DioDrv_Level_Low == IcuHdl_DigitGet(...)) FALSE → else",
+      "SetValues": [],
+      "StubFunctions": [
+        { "Name": "IcuHdl_DigitGet", "Return": "1" },
+        { "Name": "DioDrv_PinGet",   "Return": "0" }
+      ]
+    },
+    {
+      "TCId": 3,
+      "Description": "TC3: outer if FALSE — locHdl_u8=3 (= X_IcuHdl_TauDrv_Sizeof=3), condition 3 > 3 is false",
+      "Target": "if ((u8)X_IcuHdl_TauDrv_Sizeof > locHdl_u8) FALSE",
+      "SetValues": [
+        { "N": "locHdl_u8", "V": "3" }
+      ],
+      "StubFunctions": [
+        { "Name": "IcuHdl_DigitGet", "Return": "0" },
+        { "Name": "DioDrv_PinGet",   "Return": "0" }
+      ]
+    }
+  ]
+}

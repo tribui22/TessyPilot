@@ -1,0 +1,464 @@
+$testobject {
+	$stubfunctions {
+		unsigned char IcuHdl_DigitGet(unsigned char Port, unsigned char Pin) '''
+			return 0;
+		'''
+	}
+
+	$testcase 1 {
+		$name "IcuHdl_TimerNoti_LowPulseMeasure"
+		$uuid "8a338937-7b0d-47bf-aeec-ff9b2106614a"
+		$specification """
+			[Test Goal]
+			    Verify module design of IcuHdl_TimerNoti_LowPulseMeasure.
+			[Precondition]
+			    Input values as specified in test step.
+			[Test Description]
+			    Test IcuHdl_TimerNoti_LowPulseMeasure in case Function is called.
+			[Expected Result]
+			    Output match expected results which specified in test steps.
+			[Post Condition]
+			    None
+			[Test Type]
+			    Tessy
+			[Priority]
+			    Medium
+		"""
+
+		$teststep 1.1 {
+			$name "Index is valid"
+			$uuid "115d3b15-03ac-4727-9a59-45e78ecaa9c5"
+			$inputs {
+				IcuHdl_PulseDataBak_st[0] {
+					highPulse_u16 = 0
+					lowPulse_u16 = 0
+				}
+				IcuHdl_PulseDataBak_st[1] {
+					highPulse_u16 = 0
+					lowPulse_u16 = 0
+				}
+				IcuHdl_PulseDataBak_st[2] {
+					highPulse_u16 = 0
+					lowPulse_u16 = 0
+				}
+				locHdl_u8 = 0
+			}
+			$outputs {
+				IcuHdl_MeasureState_en[0] = IcuHdl_PreMeasure
+				IcuHdl_MeasureState_en[1] = IcuHdl_InitMeasure
+				IcuHdl_MeasureState_en[2] = IcuHdl_InitMeasure
+				IcuHdl_MeasureTimeOutCnt_u8[0] = 2
+				IcuHdl_MeasureTimeOutCnt_u8[1] = 0
+				IcuHdl_MeasureTimeOutCnt_u8[2] = 0
+				IcuHdl_PulseDataBak_st[0] {
+					highPulse_u16 = 0
+					lowPulse_u16 = 0
+				}
+				IcuHdl_PulseDataBak_st[1] {
+					highPulse_u16 = 0
+					lowPulse_u16 = 0
+				}
+				IcuHdl_PulseDataBak_st[2] {
+					highPulse_u16 = 0
+					lowPulse_u16 = 0
+				}
+				IcuHdl_PulseData_st[0] {
+					highPulse_u16 = 0
+					lowPulse_u16 = 0
+				}
+				IcuHdl_PulseData_st[1] {
+					highPulse_u16 = 0
+					lowPulse_u16 = 0
+				}
+				IcuHdl_PulseData_st[2] {
+					highPulse_u16 = 0
+					lowPulse_u16 = 0
+				}
+			}
+			$calltrace {
+				*** Ignore Call Trace ***
+			}
+		}
+
+		$teststep 1.2 {
+			$name "Index is valid"
+			$uuid "065dbef2-873d-4e0e-9929-e9c95ea12930"
+			$inputs {
+				IcuHdl_PulseDataBak_st[0] {
+					highPulse_u16 = 0
+					lowPulse_u16 = 0
+				}
+				IcuHdl_PulseDataBak_st[1] {
+					highPulse_u16 = 0
+					lowPulse_u16 = 0
+				}
+				IcuHdl_PulseDataBak_st[2] {
+					highPulse_u16 = 0
+					lowPulse_u16 = 0
+				}
+				locHdl_u8 = 1
+			}
+			$outputs {
+				IcuHdl_MeasureState_en[0] = IcuHdl_PreMeasure
+				IcuHdl_MeasureState_en[1] = IcuHdl_PreMeasure
+				IcuHdl_MeasureState_en[2] = IcuHdl_InitMeasure
+				IcuHdl_MeasureTimeOutCnt_u8[0] = 2
+				IcuHdl_MeasureTimeOutCnt_u8[1] = 2
+				IcuHdl_MeasureTimeOutCnt_u8[2] = 0
+				IcuHdl_PulseDataBak_st[0] {
+					highPulse_u16 = 0
+					lowPulse_u16 = 0
+				}
+				IcuHdl_PulseDataBak_st[1] {
+					highPulse_u16 = 0
+					lowPulse_u16 = 0
+				}
+				IcuHdl_PulseDataBak_st[2] {
+					highPulse_u16 = 0
+					lowPulse_u16 = 0
+				}
+				IcuHdl_PulseData_st[0] {
+					highPulse_u16 = 0
+					lowPulse_u16 = 0
+				}
+				IcuHdl_PulseData_st[1] {
+					highPulse_u16 = 0
+					lowPulse_u16 = 0
+				}
+				IcuHdl_PulseData_st[2] {
+					highPulse_u16 = 0
+					lowPulse_u16 = 0
+				}
+			}
+			$calltrace {
+				*** Ignore Call Trace ***
+			}
+		}
+
+		$teststep 1.3 {
+			$name "Index is invalid"
+			$uuid "c06cf340-581f-4f60-9464-ada5f5eae9a4"
+			$inputs {
+				IcuHdl_PulseDataBak_st[0] {
+					highPulse_u16 = 0
+					lowPulse_u16 = 0
+				}
+				IcuHdl_PulseDataBak_st[1] {
+					highPulse_u16 = 0
+					lowPulse_u16 = 0
+				}
+				IcuHdl_PulseDataBak_st[2] {
+					highPulse_u16 = 0
+					lowPulse_u16 = 0
+				}
+				locHdl_u8 = 254
+			}
+			$outputs {
+				IcuHdl_MeasureState_en[0] = IcuHdl_PreMeasure
+				IcuHdl_MeasureState_en[1] = IcuHdl_PreMeasure
+				IcuHdl_MeasureState_en[2] = IcuHdl_InitMeasure
+				IcuHdl_MeasureTimeOutCnt_u8[0] = 2
+				IcuHdl_MeasureTimeOutCnt_u8[1] = 2
+				IcuHdl_MeasureTimeOutCnt_u8[2] = 0
+				IcuHdl_PulseDataBak_st[0] {
+					highPulse_u16 = 0
+					lowPulse_u16 = 0
+				}
+				IcuHdl_PulseDataBak_st[1] {
+					highPulse_u16 = 0
+					lowPulse_u16 = 0
+				}
+				IcuHdl_PulseDataBak_st[2] {
+					highPulse_u16 = 0
+					lowPulse_u16 = 0
+				}
+				IcuHdl_PulseData_st[0] {
+					highPulse_u16 = 0
+					lowPulse_u16 = 0
+				}
+				IcuHdl_PulseData_st[1] {
+					highPulse_u16 = 0
+					lowPulse_u16 = 0
+				}
+				IcuHdl_PulseData_st[2] {
+					highPulse_u16 = 0
+					lowPulse_u16 = 0
+				}
+			}
+			$calltrace {
+				*** Ignore Call Trace ***
+			}
+		}
+
+		$teststep 1.4 {
+			$name "Index is invalid"
+			$uuid "42ef6b8f-ecc7-488d-8722-02856441ae1a"
+			$inputs {
+				IcuHdl_PulseDataBak_st[0] {
+					highPulse_u16 = 0
+					lowPulse_u16 = 0
+				}
+				IcuHdl_PulseDataBak_st[1] {
+					highPulse_u16 = 0
+					lowPulse_u16 = 0
+				}
+				IcuHdl_PulseDataBak_st[2] {
+					highPulse_u16 = 0
+					lowPulse_u16 = 0
+				}
+				locHdl_u8 = 255
+			}
+			$outputs {
+				IcuHdl_MeasureState_en[0] = IcuHdl_PreMeasure
+				IcuHdl_MeasureState_en[1] = IcuHdl_PreMeasure
+				IcuHdl_MeasureState_en[2] = IcuHdl_InitMeasure
+				IcuHdl_MeasureTimeOutCnt_u8[0] = 2
+				IcuHdl_MeasureTimeOutCnt_u8[1] = 2
+				IcuHdl_MeasureTimeOutCnt_u8[2] = 0
+				IcuHdl_PulseDataBak_st[0] {
+					highPulse_u16 = 0
+					lowPulse_u16 = 0
+				}
+				IcuHdl_PulseDataBak_st[1] {
+					highPulse_u16 = 0
+					lowPulse_u16 = 0
+				}
+				IcuHdl_PulseDataBak_st[2] {
+					highPulse_u16 = 0
+					lowPulse_u16 = 0
+				}
+				IcuHdl_PulseData_st[0] {
+					highPulse_u16 = 0
+					lowPulse_u16 = 0
+				}
+				IcuHdl_PulseData_st[1] {
+					highPulse_u16 = 0
+					lowPulse_u16 = 0
+				}
+				IcuHdl_PulseData_st[2] {
+					highPulse_u16 = 0
+					lowPulse_u16 = 0
+				}
+			}
+			$calltrace {
+				*** Ignore Call Trace ***
+			}
+		}
+	}
+	$testcase 2 {
+		$name "IcuHdl_TimerNoti_LowPulseMeasure. Test case 02"
+		$specification """
+			[Test Goal]
+				Verify that IcuHdl_TimerNoti_LowPulseMeasure correctly takes the TRUE branch: DioDrv_Level_High == IcuHdl_DigitGet() TRUE (high signal detected), PULSE_MAX != lowPulse TRUE, highPulse != 0 TRUE
+			[Precondition]
+				Set input variables so that the following condition evaluates to TRUE: DioDrv_Level_High == IcuHdl_DigitGet() TRUE (high signal detected), PULSE_MAX != lowPulse TRUE, highPulse != 0 TRUE
+			[Test Description]
+				Execute IcuHdl_TimerNoti_LowPulseMeasure() targeting: DioDrv_Level_High == IcuHdl_DigitGet() TRUE (high signal detected), PULSE_MAX != lowPulse TRUE, highPulse != 0 TRUE. Expected outcome: `DioDrv_Level_High == IcuHdl_DigitGet(...)` TRUE branch.
+			[Expected Result]
+				Output match expected results which specified in test steps
+				- Condition evaluates to TRUE (Target: `DioDrv_Level_High == IcuHdl_DigitGet(...)` TRUE branch)
+				- Correct branch statements execute (C0 + C1 coverage met)
+				- Function completes without errors or unexpected side-effects
+			[Post Condition]
+				None
+			[Test Type]
+				Tessy
+			[Priority]
+				Medium
+		"""
+		$description """
+			DioDrv_Level_High == IcuHdl_DigitGet() TRUE (high signal detected), PULSE_MAX != lowPulse TRUE, highPulse != 0 TRUE
+		"""
+
+		$teststep 2.1 {
+			$name "DioDrv_Level_High == IcuHdl_DigitGet() TRUE (high signal detected), PULSE_MAX != lowPulse TRUE, highPulse != 0 TRUE"
+			$stubfunctions {
+				unsigned char IcuHdl_DigitGet(unsigned char Port, unsigned char Pin) '''
+					return 1;
+				'''
+			}
+			$inputs {
+				IcuHdl_PulseDataBak_st[0] {
+					highPulse_u16 = 0
+					lowPulse_u16 = 0
+				}
+				locHdl_u8 = 0
+			}
+			$outputs {
+				IcuHdl_MeasureTimeOutCnt_u8[0] = 0
+				IcuHdl_MeasureState_en[0] = IcuHdl_InitMeasure
+				IcuHdl_PulseData_st[0] {
+					highPulse_u16 = 0
+					lowPulse_u16 = 0
+				}
+				IcuHdl_PulseData_st[1] {
+					highPulse_u16 = 0
+					lowPulse_u16 = 0
+				}
+				IcuHdl_PulseData_st[2] {
+					highPulse_u16 = 0
+					lowPulse_u16 = 0
+				}
+				IcuHdl_PulseDataBak_st[0] {
+					highPulse_u16 = 0
+					lowPulse_u16 = 0
+				}
+				IcuHdl_PulseDataBak_st[1] {
+					highPulse_u16 = 0
+					lowPulse_u16 = 0
+				}
+				IcuHdl_PulseDataBak_st[2] {
+					highPulse_u16 = 0
+					lowPulse_u16 = 0
+				}
+			}
+			$calltrace {
+				*** Ignore Call Trace ***
+			}
+		}
+	}
+	$testcase 3 {
+		$name "IcuHdl_TimerNoti_LowPulseMeasure. Test case 03"
+		$specification """
+			[Test Goal]
+				Verify that IcuHdl_TimerNoti_LowPulseMeasure correctly takes the FALSE branch: ICUHDL_PULSE_MAX == lowPulse_u16 (PULSE_MAX != lowPulse FALSE arm), highPulse == 0 (highPulse != 0 FALSE arm)
+			[Precondition]
+				Set input variables so that the following condition evaluates to FALSE: ICUHDL_PULSE_MAX == lowPulse_u16 (PULSE_MAX != lowPulse FALSE arm), highPulse == 0 (highPulse != 0 FALSE arm)
+			[Test Description]
+				Execute IcuHdl_TimerNoti_LowPulseMeasure() targeting: ICUHDL_PULSE_MAX == lowPulse_u16 (PULSE_MAX != lowPulse FALSE arm), highPulse == 0 (highPulse != 0 FALSE arm). Expected outcome: `ICUHDL_PULSE_MAX != IcuHdl_PulseDataBak_st[].lowPulse_u16` FALSE branch.
+			[Expected Result]
+				Output match expected results which specified in test steps
+				- Condition evaluates to FALSE (Target: `ICUHDL_PULSE_MAX != IcuHdl_PulseDataBak_st[].lowPulse_u16` FALSE branch)
+				- Correct branch statements execute (C0 + C1 coverage met)
+				- Function completes without errors or unexpected side-effects
+			[Post Condition]
+				None
+			[Test Type]
+				Tessy
+			[Priority]
+				Medium
+		"""
+		$description """
+			ICUHDL_PULSE_MAX == lowPulse_u16 (PULSE_MAX != lowPulse FALSE arm), highPulse == 0 (highPulse != 0 FALSE arm)
+		"""
+
+		$teststep 3.1 {
+			$name "ICUHDL_PULSE_MAX == lowPulse_u16 (PULSE_MAX != lowPulse FALSE arm), highPulse == 0 (highPulse != 0 FALSE arm)"
+			$stubfunctions {
+				unsigned char IcuHdl_DigitGet(unsigned char Port, unsigned char Pin) '''
+					return 1;
+				'''
+			}
+			$inputs {
+				IcuHdl_PulseDataBak_st[0] {
+					highPulse_u16 = 0
+					lowPulse_u16 = 0
+				}
+				locHdl_u8 = 0
+			}
+			$outputs {
+				IcuHdl_MeasureTimeOutCnt_u8[0] = 0
+				IcuHdl_MeasureState_en[0] = IcuHdl_InitMeasure
+				IcuHdl_PulseData_st[0] {
+					highPulse_u16 = 0
+					lowPulse_u16 = 0
+				}
+				IcuHdl_PulseData_st[1] {
+					highPulse_u16 = 0
+					lowPulse_u16 = 0
+				}
+				IcuHdl_PulseData_st[2] {
+					highPulse_u16 = 0
+					lowPulse_u16 = 0
+				}
+				IcuHdl_PulseDataBak_st[0] {
+					highPulse_u16 = 0
+					lowPulse_u16 = 0
+				}
+				IcuHdl_PulseDataBak_st[1] {
+					highPulse_u16 = 0
+					lowPulse_u16 = 0
+				}
+				IcuHdl_PulseDataBak_st[2] {
+					highPulse_u16 = 0
+					lowPulse_u16 = 0
+				}
+			}
+			$calltrace {
+				*** Ignore Call Trace ***
+			}
+		}
+	}
+	$testcase 4 {
+		$name "IcuHdl_TimerNoti_LowPulseMeasure. Test case 04"
+		$specification """
+			[Test Goal]
+				Verify that IcuHdl_TimerNoti_LowPulseMeasure correctly takes the FALSE branch: 0u != highPulse_u16 FALSE arm (highPulse == 0), PULSE_MAX != lowPulse TRUE
+			[Precondition]
+				Set input variables so that the following condition evaluates to FALSE: 0u != highPulse_u16 FALSE arm (highPulse == 0), PULSE_MAX != lowPulse TRUE
+			[Test Description]
+				Execute IcuHdl_TimerNoti_LowPulseMeasure() targeting: 0u != highPulse_u16 FALSE arm (highPulse == 0), PULSE_MAX != lowPulse TRUE. Expected outcome: `0u != IcuHdl_PulseDataBak_st[].highPulse_u16` FALSE (else) branch.
+			[Expected Result]
+				Output match expected results which specified in test steps
+				- Condition evaluates to FALSE (Target: `0u != IcuHdl_PulseDataBak_st[].highPulse_u16` FALSE (else) branch)
+				- Correct branch statements execute (C0 + C1 coverage met)
+				- Function completes without errors or unexpected side-effects
+			[Post Condition]
+				None
+			[Test Type]
+				Tessy
+			[Priority]
+				Medium
+		"""
+		$description """
+			0u != highPulse_u16 FALSE arm (highPulse == 0), PULSE_MAX != lowPulse TRUE
+		"""
+
+		$teststep 4.1 {
+			$name "0u != highPulse_u16 FALSE arm (highPulse == 0), PULSE_MAX != lowPulse TRUE"
+			$stubfunctions {
+				unsigned char IcuHdl_DigitGet(unsigned char Port, unsigned char Pin) '''
+					return 1;
+				'''
+			}
+			$inputs {
+				IcuHdl_PulseDataBak_st[0] {
+					highPulse_u16 = 0
+					lowPulse_u16 = 0
+				}
+				locHdl_u8 = 0
+			}
+			$outputs {
+				IcuHdl_MeasureTimeOutCnt_u8[0] = 0
+				IcuHdl_MeasureState_en[0] = IcuHdl_InitMeasure
+				IcuHdl_PulseData_st[0] {
+					highPulse_u16 = 0
+					lowPulse_u16 = 0
+				}
+				IcuHdl_PulseData_st[1] {
+					highPulse_u16 = 0
+					lowPulse_u16 = 0
+				}
+				IcuHdl_PulseData_st[2] {
+					highPulse_u16 = 0
+					lowPulse_u16 = 0
+				}
+				IcuHdl_PulseDataBak_st[0] {
+					highPulse_u16 = 0
+					lowPulse_u16 = 0
+				}
+				IcuHdl_PulseDataBak_st[1] {
+					highPulse_u16 = 0
+					lowPulse_u16 = 0
+				}
+				IcuHdl_PulseDataBak_st[2] {
+					highPulse_u16 = 0
+					lowPulse_u16 = 0
+				}
+			}
+			$calltrace {
+				*** Ignore Call Trace ***
+			}
+		}
+	}
+}

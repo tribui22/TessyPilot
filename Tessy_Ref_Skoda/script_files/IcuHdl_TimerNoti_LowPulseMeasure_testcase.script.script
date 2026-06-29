@@ -1,0 +1,248 @@
+$testobject {
+	$stubfunctions {
+		unsigned char IcuHdl_DigitGet(unsigned char Port, unsigned char Pin) '''
+			return 0;
+		'''
+	}
+
+	$testcase 1 {
+		$name "IcuHdl_TimerNoti_LowPulseMeasure"
+		$uuid "8a338937-7b0d-47bf-aeec-ff9b2106614a"
+		$specification """
+			[Test Goal]
+			    Verify module design of IcuHdl_TimerNoti_LowPulseMeasure.
+			[Precondition]
+			    Input values as specified in test step.
+			[Test Description]
+			    Test IcuHdl_TimerNoti_LowPulseMeasure in case Function is called.
+			[Expected Result]
+			    Output match expected results which specified in test steps.
+			[Post Condition]
+			    None
+			[Test Type]
+			    Tessy
+			[Priority]
+			    Medium
+		"""
+
+		$teststep 1.1 {
+			$name "Index is valid"
+			$uuid "115d3b15-03ac-4727-9a59-45e78ecaa9c5"
+			$inputs {
+				IcuHdl_PulseDataBak_st[0] {
+					highPulse_u16 = 0
+					lowPulse_u16 = 0
+				}
+				IcuHdl_PulseDataBak_st[1] {
+					highPulse_u16 = 0
+					lowPulse_u16 = 0
+				}
+				IcuHdl_PulseDataBak_st[2] {
+					highPulse_u16 = 0
+					lowPulse_u16 = 0
+				}
+				locHdl_u8 = 0
+			}
+			$outputs {
+				IcuHdl_MeasureState_en[0] = IcuHdl_PreMeasure
+				IcuHdl_MeasureState_en[1] = IcuHdl_InitMeasure
+				IcuHdl_MeasureState_en[2] = IcuHdl_InitMeasure
+				IcuHdl_MeasureTimeOutCnt_u8[0] = 2
+				IcuHdl_MeasureTimeOutCnt_u8[1] = 0
+				IcuHdl_MeasureTimeOutCnt_u8[2] = 0
+				IcuHdl_PulseDataBak_st[0] {
+					highPulse_u16 = 0
+					lowPulse_u16 = 0
+				}
+				IcuHdl_PulseDataBak_st[1] {
+					highPulse_u16 = 0
+					lowPulse_u16 = 0
+				}
+				IcuHdl_PulseDataBak_st[2] {
+					highPulse_u16 = 0
+					lowPulse_u16 = 0
+				}
+				IcuHdl_PulseData_st[0] {
+					highPulse_u16 = 0
+					lowPulse_u16 = 0
+				}
+				IcuHdl_PulseData_st[1] {
+					highPulse_u16 = 0
+					lowPulse_u16 = 0
+				}
+				IcuHdl_PulseData_st[2] {
+					highPulse_u16 = 0
+					lowPulse_u16 = 0
+				}
+			}
+			$calltrace {
+				*** Ignore Call Trace ***
+			}
+		}
+
+		$teststep 1.2 {
+			$name "Index is valid"
+			$uuid "065dbef2-873d-4e0e-9929-e9c95ea12930"
+			$inputs {
+				IcuHdl_PulseDataBak_st[0] {
+					highPulse_u16 = 0
+					lowPulse_u16 = 0
+				}
+				IcuHdl_PulseDataBak_st[1] {
+					highPulse_u16 = 0
+					lowPulse_u16 = 0
+				}
+				IcuHdl_PulseDataBak_st[2] {
+					highPulse_u16 = 0
+					lowPulse_u16 = 0
+				}
+				locHdl_u8 = 1
+			}
+			$outputs {
+				IcuHdl_MeasureState_en[0] = IcuHdl_PreMeasure
+				IcuHdl_MeasureState_en[1] = IcuHdl_PreMeasure
+				IcuHdl_MeasureState_en[2] = IcuHdl_InitMeasure
+				IcuHdl_MeasureTimeOutCnt_u8[0] = 2
+				IcuHdl_MeasureTimeOutCnt_u8[1] = 2
+				IcuHdl_MeasureTimeOutCnt_u8[2] = 0
+				IcuHdl_PulseDataBak_st[0] {
+					highPulse_u16 = 0
+					lowPulse_u16 = 0
+				}
+				IcuHdl_PulseDataBak_st[1] {
+					highPulse_u16 = 0
+					lowPulse_u16 = 0
+				}
+				IcuHdl_PulseDataBak_st[2] {
+					highPulse_u16 = 0
+					lowPulse_u16 = 0
+				}
+				IcuHdl_PulseData_st[0] {
+					highPulse_u16 = 0
+					lowPulse_u16 = 0
+				}
+				IcuHdl_PulseData_st[1] {
+					highPulse_u16 = 0
+					lowPulse_u16 = 0
+				}
+				IcuHdl_PulseData_st[2] {
+					highPulse_u16 = 0
+					lowPulse_u16 = 0
+				}
+			}
+			$calltrace {
+				*** Ignore Call Trace ***
+			}
+		}
+
+		$teststep 1.3 {
+			$name "Index is invalid"
+			$uuid "c06cf340-581f-4f60-9464-ada5f5eae9a4"
+			$inputs {
+				IcuHdl_PulseDataBak_st[0] {
+					highPulse_u16 = 0
+					lowPulse_u16 = 0
+				}
+				IcuHdl_PulseDataBak_st[1] {
+					highPulse_u16 = 0
+					lowPulse_u16 = 0
+				}
+				IcuHdl_PulseDataBak_st[2] {
+					highPulse_u16 = 0
+					lowPulse_u16 = 0
+				}
+				locHdl_u8 = 254
+			}
+			$outputs {
+				IcuHdl_MeasureState_en[0] = IcuHdl_PreMeasure
+				IcuHdl_MeasureState_en[1] = IcuHdl_PreMeasure
+				IcuHdl_MeasureState_en[2] = IcuHdl_InitMeasure
+				IcuHdl_MeasureTimeOutCnt_u8[0] = 2
+				IcuHdl_MeasureTimeOutCnt_u8[1] = 2
+				IcuHdl_MeasureTimeOutCnt_u8[2] = 0
+				IcuHdl_PulseDataBak_st[0] {
+					highPulse_u16 = 0
+					lowPulse_u16 = 0
+				}
+				IcuHdl_PulseDataBak_st[1] {
+					highPulse_u16 = 0
+					lowPulse_u16 = 0
+				}
+				IcuHdl_PulseDataBak_st[2] {
+					highPulse_u16 = 0
+					lowPulse_u16 = 0
+				}
+				IcuHdl_PulseData_st[0] {
+					highPulse_u16 = 0
+					lowPulse_u16 = 0
+				}
+				IcuHdl_PulseData_st[1] {
+					highPulse_u16 = 0
+					lowPulse_u16 = 0
+				}
+				IcuHdl_PulseData_st[2] {
+					highPulse_u16 = 0
+					lowPulse_u16 = 0
+				}
+			}
+			$calltrace {
+				*** Ignore Call Trace ***
+			}
+		}
+
+		$teststep 1.4 {
+			$name "Index is invalid"
+			$uuid "42ef6b8f-ecc7-488d-8722-02856441ae1a"
+			$inputs {
+				IcuHdl_PulseDataBak_st[0] {
+					highPulse_u16 = 0
+					lowPulse_u16 = 0
+				}
+				IcuHdl_PulseDataBak_st[1] {
+					highPulse_u16 = 0
+					lowPulse_u16 = 0
+				}
+				IcuHdl_PulseDataBak_st[2] {
+					highPulse_u16 = 0
+					lowPulse_u16 = 0
+				}
+				locHdl_u8 = 255
+			}
+			$outputs {
+				IcuHdl_MeasureState_en[0] = IcuHdl_PreMeasure
+				IcuHdl_MeasureState_en[1] = IcuHdl_PreMeasure
+				IcuHdl_MeasureState_en[2] = IcuHdl_InitMeasure
+				IcuHdl_MeasureTimeOutCnt_u8[0] = 2
+				IcuHdl_MeasureTimeOutCnt_u8[1] = 2
+				IcuHdl_MeasureTimeOutCnt_u8[2] = 0
+				IcuHdl_PulseDataBak_st[0] {
+					highPulse_u16 = 0
+					lowPulse_u16 = 0
+				}
+				IcuHdl_PulseDataBak_st[1] {
+					highPulse_u16 = 0
+					lowPulse_u16 = 0
+				}
+				IcuHdl_PulseDataBak_st[2] {
+					highPulse_u16 = 0
+					lowPulse_u16 = 0
+				}
+				IcuHdl_PulseData_st[0] {
+					highPulse_u16 = 0
+					lowPulse_u16 = 0
+				}
+				IcuHdl_PulseData_st[1] {
+					highPulse_u16 = 0
+					lowPulse_u16 = 0
+				}
+				IcuHdl_PulseData_st[2] {
+					highPulse_u16 = 0
+					lowPulse_u16 = 0
+				}
+			}
+			$calltrace {
+				*** Ignore Call Trace ***
+			}
+		}
+	}
+}

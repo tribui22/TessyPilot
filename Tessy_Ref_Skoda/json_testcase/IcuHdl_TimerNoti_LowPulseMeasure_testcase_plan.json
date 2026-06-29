@@ -1,0 +1,51 @@
+{
+  "FunctionSignature": "void IcuHdl_TimerNoti_LowPulseMeasure(u8 locHdl_u8)",
+  "TotalTestCases": 3,
+  "DefaultValues": [
+    { "N": "locHdl_u8", "V": "0" },
+    { "N": "IcuHdl_PulseDataBak_st[0].lowPulse_u16", "V": "0" },
+    { "N": "IcuHdl_PulseDataBak_st[0].highPulse_u16", "V": "0" }
+  ],
+  "TestCases": [
+    {
+      "TCId": 1,
+      "Description": "TC1: DioDrv_Level_High == IcuHdl_DigitGet() TRUE (high signal detected), PULSE_MAX != lowPulse TRUE, highPulse != 0 TRUE",
+      "Target": "`DioDrv_Level_High == IcuHdl_DigitGet(...)` TRUE branch",
+      "SetValues": [
+        { "N": "IcuHdl_PulseDataBak_st[0].highPulse_u16", "V": "1" }
+      ],
+      "StubFunctions": [
+        {
+          "Name": "IcuHdl_DigitGet",
+          "Return": "1"
+        }
+      ]
+    },
+    {
+      "TCId": 2,
+      "Description": "TC2: ICUHDL_PULSE_MAX == lowPulse_u16 (PULSE_MAX != lowPulse FALSE arm), highPulse == 0 (highPulse != 0 FALSE arm)",
+      "Target": "`ICUHDL_PULSE_MAX != IcuHdl_PulseDataBak_st[].lowPulse_u16` FALSE branch",
+      "SetValues": [
+        { "N": "IcuHdl_PulseDataBak_st[0].lowPulse_u16", "V": "0xFFFF" }
+      ],
+      "StubFunctions": [
+        {
+          "Name": "IcuHdl_DigitGet",
+          "Return": "1"
+        }
+      ]
+    },
+    {
+      "TCId": 3,
+      "Description": "TC3: 0u != highPulse_u16 FALSE arm (highPulse == 0), PULSE_MAX != lowPulse TRUE",
+      "Target": "`0u != IcuHdl_PulseDataBak_st[].highPulse_u16` FALSE (else) branch",
+      "SetValues": [],
+      "StubFunctions": [
+        {
+          "Name": "IcuHdl_DigitGet",
+          "Return": "1"
+        }
+      ]
+    }
+  ]
+}

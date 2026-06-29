@@ -1,0 +1,40 @@
+Tessy: {Version: 4.3.19, File Type: Import/Export}
+---
+General: {Project: Chery_M1E_Variant, Testobject: IcuHdl_TimerNoti_PreMeasure, PDB File: 'C:\Data\Project\208_Tessy_For_Chery_Project\03_Chery_M1E_Variant_v2\tessy\tessy.pdbx',
+  Tessy Version: 4.3.19, Export Date: '2026-05-04', Module: IcuHdl_2_Cfg.c}
+---
+Properties:
+- - '1'
+  - '0'
+  - ''
+  - IcuHdl_TimerNoti_PreMeasure
+  - ''
+  - |-
+    [Test Goal]
+        Verify module design of IcuHdl_TimerNoti_PreMeasure.
+    [Precondition]
+        Input values as specified in test step.
+    [Test Description]
+        Test IcuHdl_TimerNoti_PreMeasure in case Function is called.
+    [Expected Result]
+        Output match expected results which specified in test steps.
+    [Post Condition]
+        None
+    [Test Type]
+        Tessy
+    [Priority]
+        Medium
+  - ''
+  - ''
+- ['1', '1', '', Pin is Low level, '', '', '', '']
+---
+Stubs:
+- ['0', '0', DioDrv_PinGet, '']
+- ['0', '0', IcuHdl_DigitGet, '']
+- ['1', '0', IcuHdl_DigitGet, return 0;]
+---
+Values:
+- [locHdl_u8, 'IcuHdl_MeasureState_en[0]', 'IcuHdl_MeasureState_en[1]', 'IcuHdl_MeasureState_en[2]', 'IcuHdl_MeasureTimeOutCnt_u8[0]',
+  'IcuHdl_MeasureTimeOutCnt_u8[1]', 'IcuHdl_MeasureTimeOutCnt_u8[2]']
+- [i, o, o, o, o, o, o]
+- [tc1.1, '0', '3', '2', '0', '2', '2', '0']

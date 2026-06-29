@@ -1,0 +1,293 @@
+$testobject {
+	$stubfunctions {
+		unsigned char DioDrv_PinGet(unsigned char l_portidx_u8, unsigned char l_pinidx_u8) '''
+			return 0;
+		'''
+		unsigned char IcuHdl_DigitGet(unsigned char Port, unsigned char Pin) '''
+			return 0;
+		'''
+	}
+
+	$testcase 1 {
+		$name "IcuHdl_TimerNoti_PreMeasure. Test case 01"
+		$specification """
+			[Test Goal]
+				Verify that IcuHdl_TimerNoti_PreMeasure correctly takes the TRUE branch: outer if TRUE, inner if TRUE -- locHdl_u8=0 (< X_IcuHdl_TauDrv_Sizeof=3), IcuHdl_DigitGet returns DioDrv_Level_Low (0)
+			[Precondition]
+				Set input variables so that the following condition evaluates to TRUE: outer if TRUE, inner if TRUE -- locHdl_u8=0 (< X_IcuHdl_TauDrv_Sizeof=3), IcuHdl_DigitGet returns DioDrv_Level_Low (0)
+			[Test Description]
+				Execute IcuHdl_TimerNoti_PreMeasure() targeting: outer if TRUE, inner if TRUE -- locHdl_u8=0 (< X_IcuHdl_TauDrv_Sizeof=3), IcuHdl_DigitGet returns DioDrv_Level_Low (0). Expected outcome: if ((u8)X_IcuHdl_TauDrv_Sizeof > locHdl_u8) TRUE; if (DioDrv_Level_Low == IcuHdl_DigitGet(...)) TRUE.
+			[Expected Result]
+				Output match expected results which specified in test steps
+				- Condition evaluates to TRUE (Target: if ((u8)X_IcuHdl_TauDrv_Sizeof > locHdl_u8) TRUE; if (DioDrv_Level_Low == IcuHdl_DigitGet(...)) TRUE)
+				- Correct branch statements execute (C0 + C1 coverage met)
+				- Function completes without errors or unexpected side-effects
+			[Post Condition]
+				None
+			[Test Type]
+				Tessy
+			[Priority]
+				Medium
+		"""
+		$description """
+			outer if TRUE, inner if TRUE -- locHdl_u8=0 (< X_IcuHdl_TauDrv_Sizeof=3), IcuHdl_DigitGet returns DioDrv_Level_Low (0)
+		"""
+
+		$teststep 1.1 {
+			$name "outer if TRUE, inner if TRUE -- locHdl_u8=0 (< X_IcuHdl_TauDrv_Sizeof=3), IcuHdl_DigitGet returns DioDrv_Level_Low (0)"
+			$stubfunctions {
+				unsigned char DioDrv_PinGet(unsigned char l_portidx_u8, unsigned char l_pinidx_u8) '''
+					return 0;
+				'''
+				unsigned char IcuHdl_DigitGet(unsigned char Port, unsigned char Pin) '''
+					return 0;
+				'''
+			}
+			$inputs {
+				locHdl_u8 = 0
+			}
+			$outputs {
+				IcuHdl_MeasureTimeOutCnt_u8[0] = 0
+				IcuHdl_MeasureState_en[0] = IcuHdl_InitMeasure
+			}
+			$calltrace {
+				*** Ignore Call Trace ***
+			}
+		}
+	}
+	$testcase 2 {
+		$name "IcuHdl_TimerNoti_PreMeasure. Test case 02"
+		$specification """
+			[Test Goal]
+				Verify that IcuHdl_TimerNoti_PreMeasure correctly takes the TRUE branch: outer if TRUE, inner if FALSE (else) -- locHdl_u8=0 (< X_IcuHdl_TauDrv_Sizeof=3), IcuHdl_DigitGet returns 1 (not DioDrv_Level_Low)
+			[Precondition]
+				Set input variables so that the following condition evaluates to TRUE: outer if TRUE, inner if FALSE (else) -- locHdl_u8=0 (< X_IcuHdl_TauDrv_Sizeof=3), IcuHdl_DigitGet returns 1 (not DioDrv_Level_Low)
+			[Test Description]
+				Execute IcuHdl_TimerNoti_PreMeasure() targeting: outer if TRUE, inner if FALSE (else) -- locHdl_u8=0 (< X_IcuHdl_TauDrv_Sizeof=3), IcuHdl_DigitGet returns 1 (not DioDrv_Level_Low). Expected outcome: if ((u8)X_IcuHdl_TauDrv_Sizeof > locHdl_u8) TRUE; if (DioDrv_Level_Low == IcuHdl_DigitGet(...)) FALSE -> else.
+			[Expected Result]
+				Output match expected results which specified in test steps
+				- Condition evaluates to TRUE (Target: if ((u8)X_IcuHdl_TauDrv_Sizeof > locHdl_u8) TRUE; if (DioDrv_Level_Low == IcuHdl_DigitGet(...)) FALSE -> else)
+				- Correct branch statements execute (C0 + C1 coverage met)
+				- Function completes without errors or unexpected side-effects
+			[Post Condition]
+				None
+			[Test Type]
+				Tessy
+			[Priority]
+				Medium
+		"""
+		$description """
+			outer if TRUE, inner if FALSE (else) -- locHdl_u8=0 (< X_IcuHdl_TauDrv_Sizeof=3), IcuHdl_DigitGet returns 1 (not DioDrv_Level_Low)
+		"""
+
+		$teststep 2.1 {
+			$name "outer if TRUE, inner if FALSE (else) -- locHdl_u8=0 (< X_IcuHdl_TauDrv_Sizeof=3), IcuHdl_DigitGet returns 1 (not DioDrv_L"
+			$stubfunctions {
+				unsigned char DioDrv_PinGet(unsigned char l_portidx_u8, unsigned char l_pinidx_u8) '''
+					return 0;
+				'''
+				unsigned char IcuHdl_DigitGet(unsigned char Port, unsigned char Pin) '''
+					return 1;
+				'''
+			}
+			$inputs {
+				locHdl_u8 = 0
+			}
+			$outputs {
+				IcuHdl_MeasureTimeOutCnt_u8[0] = 0
+				IcuHdl_MeasureState_en[0] = IcuHdl_InitMeasure
+			}
+			$calltrace {
+				*** Ignore Call Trace ***
+			}
+		}
+	}
+	$testcase 3 {
+		$name "IcuHdl_TimerNoti_PreMeasure. Test case 03"
+		$specification """
+			[Test Goal]
+				Verify that IcuHdl_TimerNoti_PreMeasure correctly takes the FALSE branch: outer if FALSE -- locHdl_u8=3 (= X_IcuHdl_TauDrv_Sizeof=3), condition 3 > 3 is false
+			[Precondition]
+				Set input variables so that the following condition evaluates to FALSE: outer if FALSE -- locHdl_u8=3 (= X_IcuHdl_TauDrv_Sizeof=3), condition 3 > 3 is false
+			[Test Description]
+				Execute IcuHdl_TimerNoti_PreMeasure() targeting: outer if FALSE -- locHdl_u8=3 (= X_IcuHdl_TauDrv_Sizeof=3), condition 3 > 3 is false. Expected outcome: if ((u8)X_IcuHdl_TauDrv_Sizeof > locHdl_u8) FALSE.
+			[Expected Result]
+				Output match expected results which specified in test steps
+				- Condition evaluates to FALSE (Target: if ((u8)X_IcuHdl_TauDrv_Sizeof > locHdl_u8) FALSE)
+				- Correct branch statements execute (C0 + C1 coverage met)
+				- Function completes without errors or unexpected side-effects
+			[Post Condition]
+				None
+			[Test Type]
+				Tessy
+			[Priority]
+				Medium
+		"""
+		$description """
+			outer if FALSE -- locHdl_u8=3 (= X_IcuHdl_TauDrv_Sizeof=3), condition 3 > 3 is false
+		"""
+
+		$teststep 3.1 {
+			$name "outer if FALSE -- locHdl_u8=3 (= X_IcuHdl_TauDrv_Sizeof=3), condition 3 > 3 is false"
+			$stubfunctions {
+				unsigned char DioDrv_PinGet(unsigned char l_portidx_u8, unsigned char l_pinidx_u8) '''
+					return 0;
+				'''
+				unsigned char IcuHdl_DigitGet(unsigned char Port, unsigned char Pin) '''
+					return 0;
+				'''
+			}
+			$inputs {
+				locHdl_u8 = 3
+			}
+			$outputs {
+				IcuHdl_MeasureTimeOutCnt_u8[0] = 0
+				IcuHdl_MeasureState_en[0] = IcuHdl_InitMeasure
+			}
+			$calltrace {
+				*** Ignore Call Trace ***
+			}
+		}
+	}
+	$testcase 4 {
+		$name "IcuHdl_TimerNoti_PreMeasure. Test case 04"
+		$specification """
+			[Test Goal]
+				Verify that IcuHdl_TimerNoti_PreMeasure correctly takes the TRUE branch: outer if TRUE, inner if TRUE -- locHdl_u8=0 (< X_IcuHdl_TauDrv_Sizeof=3), IcuHdl_DigitGet returns DioDrv_Level_Low (0)
+			[Precondition]
+				Set input variables so that the following condition evaluates to TRUE: outer if TRUE, inner if TRUE -- locHdl_u8=0 (< X_IcuHdl_TauDrv_Sizeof=3), IcuHdl_DigitGet returns DioDrv_Level_Low (0)
+			[Test Description]
+				Execute IcuHdl_TimerNoti_PreMeasure() targeting: outer if TRUE, inner if TRUE -- locHdl_u8=0 (< X_IcuHdl_TauDrv_Sizeof=3), IcuHdl_DigitGet returns DioDrv_Level_Low (0). Expected outcome: if ((u8)X_IcuHdl_TauDrv_Sizeof > locHdl_u8) TRUE; if (DioDrv_Level_Low == IcuHdl_DigitGet(...)) TRUE.
+			[Expected Result]
+				Output match expected results which specified in test steps
+				- Condition evaluates to TRUE (Target: if ((u8)X_IcuHdl_TauDrv_Sizeof > locHdl_u8) TRUE; if (DioDrv_Level_Low == IcuHdl_DigitGet(...)) TRUE)
+				- Correct branch statements execute (C0 + C1 coverage met)
+				- Function completes without errors or unexpected side-effects
+			[Post Condition]
+				None
+			[Test Type]
+				Tessy
+			[Priority]
+				Medium
+		"""
+		$description """
+			outer if TRUE, inner if TRUE -- locHdl_u8=0 (< X_IcuHdl_TauDrv_Sizeof=3), IcuHdl_DigitGet returns DioDrv_Level_Low (0)
+		"""
+
+		$teststep 4.1 {
+			$name "outer if TRUE, inner if TRUE -- locHdl_u8=0 (< X_IcuHdl_TauDrv_Sizeof=3), IcuHdl_DigitGet returns DioDrv_Level_Low (0)"
+			$stubfunctions {
+				unsigned char DioDrv_PinGet(unsigned char l_portidx_u8, unsigned char l_pinidx_u8) '''
+					return 0;
+				'''
+				unsigned char IcuHdl_DigitGet(unsigned char Port, unsigned char Pin) '''
+					return 0;
+				'''
+			}
+			$inputs {
+				locHdl_u8 = 0
+			}
+			$outputs {
+				IcuHdl_MeasureTimeOutCnt_u8[0] = 0
+				IcuHdl_MeasureState_en[0] = IcuHdl_InitMeasure
+			}
+			$calltrace {
+				*** Ignore Call Trace ***
+			}
+		}
+	}
+	$testcase 5 {
+		$name "IcuHdl_TimerNoti_PreMeasure. Test case 05"
+		$specification """
+			[Test Goal]
+				Verify that IcuHdl_TimerNoti_PreMeasure correctly takes the TRUE branch: outer if TRUE, inner if FALSE (else) -- locHdl_u8=0 (< X_IcuHdl_TauDrv_Sizeof=3), IcuHdl_DigitGet returns 1 (not DioDrv_Level_Low)
+			[Precondition]
+				Set input variables so that the following condition evaluates to TRUE: outer if TRUE, inner if FALSE (else) -- locHdl_u8=0 (< X_IcuHdl_TauDrv_Sizeof=3), IcuHdl_DigitGet returns 1 (not DioDrv_Level_Low)
+			[Test Description]
+				Execute IcuHdl_TimerNoti_PreMeasure() targeting: outer if TRUE, inner if FALSE (else) -- locHdl_u8=0 (< X_IcuHdl_TauDrv_Sizeof=3), IcuHdl_DigitGet returns 1 (not DioDrv_Level_Low). Expected outcome: if ((u8)X_IcuHdl_TauDrv_Sizeof > locHdl_u8) TRUE; if (DioDrv_Level_Low == IcuHdl_DigitGet(...)) FALSE -> else.
+			[Expected Result]
+				Output match expected results which specified in test steps
+				- Condition evaluates to TRUE (Target: if ((u8)X_IcuHdl_TauDrv_Sizeof > locHdl_u8) TRUE; if (DioDrv_Level_Low == IcuHdl_DigitGet(...)) FALSE -> else)
+				- Correct branch statements execute (C0 + C1 coverage met)
+				- Function completes without errors or unexpected side-effects
+			[Post Condition]
+				None
+			[Test Type]
+				Tessy
+			[Priority]
+				Medium
+		"""
+		$description """
+			outer if TRUE, inner if FALSE (else) -- locHdl_u8=0 (< X_IcuHdl_TauDrv_Sizeof=3), IcuHdl_DigitGet returns 1 (not DioDrv_Level_Low)
+		"""
+
+		$teststep 5.1 {
+			$name "outer if TRUE, inner if FALSE (else) -- locHdl_u8=0 (< X_IcuHdl_TauDrv_Sizeof=3), IcuHdl_DigitGet returns 1 (not DioDrv_L"
+			$stubfunctions {
+				unsigned char DioDrv_PinGet(unsigned char l_portidx_u8, unsigned char l_pinidx_u8) '''
+					return 0;
+				'''
+				unsigned char IcuHdl_DigitGet(unsigned char Port, unsigned char Pin) '''
+					return 1;
+				'''
+			}
+			$inputs {
+				locHdl_u8 = 0
+			}
+			$outputs {
+				IcuHdl_MeasureTimeOutCnt_u8[0] = 0
+				IcuHdl_MeasureState_en[0] = IcuHdl_InitMeasure
+			}
+			$calltrace {
+				*** Ignore Call Trace ***
+			}
+		}
+	}
+	$testcase 6 {
+		$name "IcuHdl_TimerNoti_PreMeasure. Test case 06"
+		$specification """
+			[Test Goal]
+				Verify that IcuHdl_TimerNoti_PreMeasure correctly takes the FALSE branch: outer if FALSE -- locHdl_u8=3 (= X_IcuHdl_TauDrv_Sizeof=3), condition 3 > 3 is false
+			[Precondition]
+				Set input variables so that the following condition evaluates to FALSE: outer if FALSE -- locHdl_u8=3 (= X_IcuHdl_TauDrv_Sizeof=3), condition 3 > 3 is false
+			[Test Description]
+				Execute IcuHdl_TimerNoti_PreMeasure() targeting: outer if FALSE -- locHdl_u8=3 (= X_IcuHdl_TauDrv_Sizeof=3), condition 3 > 3 is false. Expected outcome: if ((u8)X_IcuHdl_TauDrv_Sizeof > locHdl_u8) FALSE.
+			[Expected Result]
+				Output match expected results which specified in test steps
+				- Condition evaluates to FALSE (Target: if ((u8)X_IcuHdl_TauDrv_Sizeof > locHdl_u8) FALSE)
+				- Correct branch statements execute (C0 + C1 coverage met)
+				- Function completes without errors or unexpected side-effects
+			[Post Condition]
+				None
+			[Test Type]
+				Tessy
+			[Priority]
+				Medium
+		"""
+		$description """
+			outer if FALSE -- locHdl_u8=3 (= X_IcuHdl_TauDrv_Sizeof=3), condition 3 > 3 is false
+		"""
+
+		$teststep 6.1 {
+			$name "outer if FALSE -- locHdl_u8=3 (= X_IcuHdl_TauDrv_Sizeof=3), condition 3 > 3 is false"
+			$stubfunctions {
+				unsigned char DioDrv_PinGet(unsigned char l_portidx_u8, unsigned char l_pinidx_u8) '''
+					return 0;
+				'''
+				unsigned char IcuHdl_DigitGet(unsigned char Port, unsigned char Pin) '''
+					return 0;
+				'''
+			}
+			$inputs {
+				locHdl_u8 = 3
+			}
+			$outputs {
+				IcuHdl_MeasureTimeOutCnt_u8[0] = 0
+				IcuHdl_MeasureState_en[0] = IcuHdl_InitMeasure
+			}
+			$calltrace {
+				*** Ignore Call Trace ***
+			}
+		}
+	}
+}
