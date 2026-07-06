@@ -62,6 +62,34 @@ $ErrorActionPreference = "Continue"
 $batchResults = @()
 $total        = $testObjects.Count
 
+$logDir  = Join-Path $WorkDir "logs"
+if (-not (Test-Path $logDir)) {
+    New-Item -Path $logDir -ItemType Directory -Force | Out-Null
+}
+$stepStatsLogFile = Join-Path $logDir "steps7to10_failures.jsonl"
+
+function Add-StepResult {
+    param(
+        [Parameter(Mandatory=$true)][hashtable]$Stats,
+        [Parameter(Mandatory=$true)][string]$StepName,
+        [Parameter(Mandatory=$true)][int]$ExitCode,
+        [Parameter(Mandatory=$true)][int]$Iteration
+    )
+
+    $Stats.StepExitCodes[$StepName] = $ExitCode
+
+    if ($ExitCode -ne 0) {
+        $Stats.NonZeroExitCount++
+        $Stats.FailedStepCount++
+        $Stats.FailedSteps += [PSCustomObject]@{
+            Step      = $StepName
+            ExitCode  = $ExitCode
+            Iteration = $Iteration
+            Time      = (Get-Date).ToString("o")
+        }
+    }
+}
+
 foreach ($i in 0..($total - 1)) {
     $testObject = $testObjects[$i]
     $mod        = if ($Module.Count -eq 1) { $Module[0] } else { $Module[$i] }
@@ -88,6 +116,13 @@ foreach ($i in 0..($total - 1)) {
     $correctionPass = $false
     $correctionPassDone = $false
 
+    $stepStats = @{
+        NonZeroExitCount = 0
+        FailedStepCount  = 0
+        FailedSteps      = @()
+        StepExitCodes    = @{}
+    }
+
     while ($iteration -le $MaxIterations -or $correctionPass) {
         $isCorrectionPass = $correctionPass
         $correctionPass = $false
@@ -104,10 +139,12 @@ foreach ($i in 0..($total - 1)) {
         if ($skipStep4) {
             Write-Host "[STEPS7-10] STEP 7 SKIPPED - Existing testcase script found" -ForegroundColor Green
             Write-Host "  Using: $existingScript" -ForegroundColor DarkGray
+            Add-StepResult -Stats $stepStats -StepName "Step7" -ExitCode 0 -Iteration $iteration
         } else {
             $step7 = "$StepsDir\step7_generate_testcases.ps1"
             if (-not (Test-Path $step7)) {
                 Write-Host "ERROR: Step 7 script not found: $step7" -ForegroundColor Red
+                Add-StepResult -Stats $stepStats -StepName "Step7" -ExitCode 9007 -Iteration $iteration
                 $batchExitCode = 1; break
             }
             & $step7 `
@@ -120,6 +157,7 @@ foreach ($i in 0..($total - 1)) {
             if ($LASTEXITCODE -ne 0) {
                 Write-Host "WARNING: Step 7 had issues (exit code $LASTEXITCODE)" -ForegroundColor Yellow
             }
+            Add-StepResult -Stats $stepStats -StepName "Step7" -ExitCode $LASTEXITCODE -Iteration $iteration
             Write-Host "[STEPS7-10] STEP 7 COMPLETE" -ForegroundColor Green
         }
 
@@ -129,6 +167,7 @@ foreach ($i in 0..($total - 1)) {
         $step8 = "$StepsDir\step8_execute_tests.ps1"
         if (-not (Test-Path $step8)) {
             Write-Host "ERROR: Step 8 script not found: $step8" -ForegroundColor Red
+            Add-StepResult -Stats $stepStats -StepName "Step8" -ExitCode 9008 -Iteration $iteration
             $batchExitCode = 1; break
         }
         & $step8 `
@@ -139,6 +178,8 @@ foreach ($i in 0..($total - 1)) {
             -TessyProject   $TessyProject `
             -TestCollection $TestCollection `
             -ScriptRoot     $ScriptRoot
+
+        Add-StepResult -Stats $stepStats -StepName "Step8" -ExitCode $LASTEXITCODE -Iteration $iteration
 
         if ($LASTEXITCODE -eq 3) {
             Write-Host "[STEPS7-10] STEP 8 IMPORT FAILED - regenerating test cases" -ForegroundColor Red
@@ -156,6 +197,7 @@ foreach ($i in 0..($total - 1)) {
         $step9 = "$StepsDir\step9_analyze_results.ps1"
         if (-not (Test-Path $step9)) {
             Write-Host "ERROR: Step 9 script not found: $step9" -ForegroundColor Red
+            Add-StepResult -Stats $stepStats -StepName "Step9" -ExitCode 9009 -Iteration $iteration
             $batchExitCode = 1; break
         }
         & $step9 `
@@ -163,6 +205,8 @@ foreach ($i in 0..($total - 1)) {
             -Module     $mod `
             -WorkingDir $WorkDir `
             -ScriptRoot $ScriptRoot
+
+        Add-StepResult -Stats $stepStats -StepName "Step9" -ExitCode $LASTEXITCODE -Iteration $iteration
 
         if ($LASTEXITCODE -ne 0) {
             Write-Host "WARNING: Step 9 had issues (exit code $LASTEXITCODE)" -ForegroundColor Yellow
@@ -185,6 +229,7 @@ foreach ($i in 0..($total - 1)) {
         $step10 = "$StepsDir\step10_verify_coverage.ps1"
         if (-not (Test-Path $step10)) {
             Write-Host "ERROR: Step 10 script not found: $step10" -ForegroundColor Red
+            Add-StepResult -Stats $stepStats -StepName "Step10" -ExitCode 9010 -Iteration $iteration
             $batchExitCode = 1; break
         }
         & $step10 `
@@ -195,6 +240,8 @@ foreach ($i in 0..($total - 1)) {
             -C0Target   $C0Target `
             -C1Target   $C1Target `
             -Iteration  $iteration
+
+        Add-StepResult -Stats $stepStats -StepName "Step10" -ExitCode $LASTEXITCODE -Iteration $iteration
 
         if ($LASTEXITCODE -eq 0) {
             Write-Host "`n================================================================================" -ForegroundColor Green
@@ -241,6 +288,22 @@ foreach ($i in 0..($total - 1)) {
     $status = if ($batchExitCode -eq 0) { "SUCCESS" } else { "FAILED (exit $batchExitCode)" }
     $color  = if ($batchExitCode -eq 0) { "Green"   } else { "Red" }
     Write-Host "`n[$($i+1)/$total] $testObject -> $status" -ForegroundColor $color
+    Write-Host "  Step failures: $($stepStats.FailedStepCount), non-zero exits: $($stepStats.NonZeroExitCount)" -ForegroundColor DarkYellow
+
+    $stepStatsRecord = [PSCustomObject]@{
+        Timestamp        = (Get-Date).ToString("o")
+        Index            = $i + 1
+        Folder           = $fld
+        Module           = $mod
+        TestObject       = $testObject
+        BatchExitCode    = $batchExitCode
+        Status           = $status
+        NonZeroExitCount = $stepStats.NonZeroExitCount
+        FailedStepCount  = $stepStats.FailedStepCount
+        FailedSteps      = $stepStats.FailedSteps
+        StepExitCodes    = $stepStats.StepExitCodes
+    }
+    ($stepStatsRecord | ConvertTo-Json -Depth 8 -Compress) | Add-Content -Path $stepStatsLogFile -Encoding UTF8
 
     $batchResults += [PSCustomObject]@{
         Index      = $i + 1
@@ -249,6 +312,8 @@ foreach ($i in 0..($total - 1)) {
         TestObject = $testObject
         ExitCode   = $batchExitCode
         Status     = $status
+        NonZeroExitCount = $stepStats.NonZeroExitCount
+        FailedStepCount  = $stepStats.FailedStepCount
     }
 }
 
@@ -268,10 +333,11 @@ foreach ($r in $batchResults) {
         $lastModule = $r.Module
     }
     $color = if ($r.ExitCode -eq 0) { "Green" } else { "Red" }
-    Write-Host ("      [{0:D2}/{1:D2}] {2,-45} {3}" -f $r.Index, $total, $r.TestObject, $r.Status) -ForegroundColor $color
+    Write-Host ("      [{0:D2}/{1:D2}] {2,-45} {3}  | failed-steps={4}, non-zero={5}" -f $r.Index, $total, $r.TestObject, $r.Status, $r.FailedStepCount, $r.NonZeroExitCount) -ForegroundColor $color
 }
 
 $passed = ($batchResults | Where-Object { $_.ExitCode -eq 0 }).Count
 $failed = ($batchResults | Where-Object { $_.ExitCode -ne 0 }).Count
 Write-Host "`n  Passed: $passed   Failed: $failed" -ForegroundColor White
+Write-Host "  Step stats log: $stepStatsLogFile" -ForegroundColor DarkGray
 Write-Host "================================================================================" -ForegroundColor Cyan
