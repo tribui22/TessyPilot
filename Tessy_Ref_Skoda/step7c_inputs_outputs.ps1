@@ -24,6 +24,8 @@
 $script:condFileEnumCache = @{}
 # Per-TC indexed overrides for pointer variables; cleared at start of each Parse-SetValuesOverrides call
 $script:_pointerIndexedOverrides = @{}
+# Per-TC pointer member overrides, e.g. config_ptr->field or config_ptr.field
+$script:_pointerMemberOverrides = @{}
 
 function Get-EnumMembersFromConditionsFile {
     param([string]$TypeName)
@@ -124,8 +126,9 @@ function Parse-SetValuesOverrides {
         @{ Name = $_.Name; FullDeclaration = $_.Type }
     }
 
-    # Reset per-TC pointer indexed overrides
+    # Reset per-TC pointer overrides
     $script:_pointerIndexedOverrides = @{}
+    $script:_pointerMemberOverrides = @{}
 
     $overrides = [ordered]@{}
     foreach ($raw in $SetValues) {
@@ -154,6 +157,12 @@ function Parse-SetValuesOverrides {
         }
 
         if (-not $sv) { continue }
+
+        # Normalize pointer member syntax into dot notation for robust matching.
+        # Example: config_ptr->fccMeasureSource_en = 0 -> config_ptr.fccMeasureSource_en = 0
+        if ($sv -match '->') {
+            $sv = ($sv -replace '\s*->\s*', '.')
+        }
         # Pattern 1: "// condition[N]: EXPR -> set so that it is TRUE|FALSE"
         if ($sv -match '//\s*condition\[\d+\]:\s*(.*?)\s*->\s*set so that it is\s*(TRUE|FALSE)') {
             $condExpr = $Matches[1].Trim()
@@ -181,13 +190,25 @@ function Parse-SetValuesOverrides {
             Write-Host "  [SET local-static $varBase = $value] from: $sv" -ForegroundColor DarkGreen
             continue
         }
-        # Pattern 3: "varname[index].member = value" or "varname[index] = value" or "varname = value"
-        # Extract base variable name and value for direct override
-        if ($sv -match '^([A-Za-z_][A-Za-z0-9_]*)(?:\[[^\]]*\])?(?:\.[A-Za-z_][A-Za-z0-9_]*)?\s*=\s*(.+)$') {
+        # Pattern 3: direct base assignment only (var[index] = value or var = value).
+        # Intentionally DO NOT match member paths like "config_ptr.field = x" to avoid
+        # collapsing pointer-member overrides into "config_ptr = x".
+        if ($sv -match '^([A-Za-z_][A-Za-z0-9_]*)(?:\[[^\]]*\])?\s*=\s*(.+)$') {
             $varBase = $Matches[1].Trim()
             $value   = $Matches[2].Trim()
             $overrides[$varBase] = $value
             Write-Host "  [SET $varBase = $value] from: $sv" -ForegroundColor DarkGreen
+        }
+        # Capture pointer-member override path: ptr.member[.submember] = value
+        if ($sv -match '^([A-Za-z_][A-Za-z0-9_]*)\.([A-Za-z_][A-Za-z0-9_\.]*)\s*=\s*(.+)$') {
+            $ptrBase = $Matches[1].Trim()
+            $memberPath = $Matches[2].Trim()
+            $ptrVal = $Matches[3].Trim()
+            if (-not $script:_pointerMemberOverrides.ContainsKey($ptrBase)) {
+                $script:_pointerMemberOverrides[$ptrBase] = @{}
+            }
+            $script:_pointerMemberOverrides[$ptrBase][$memberPath] = $ptrVal
+            Write-Host "  [SET pointer-member $ptrBase.$memberPath = $ptrVal] from: $sv" -ForegroundColor DarkGreen
         }
         # Also track per-index values for pointer variables: varname[N] = value
         if ($sv -match '^([A-Za-z_][A-Za-z0-9_]*)\[(\d+)\]\s*=\s*(.+)$') {
@@ -276,25 +297,31 @@ function Build-TCInputsOutputs {
     $stepName = $stepName -replace [char]0x2014, '--' -replace [char]0x2013, '--' -replace '[^\x00-\x7E]', '?'
     $out += "`t`t`t`$name `"$stepName`"`n"
 
-    # Per-teststep stub overrides: only emitted when TC-specific return values differ from default
+    # Per-teststep stub overrides: always emit requested non-void StubFunctions.
+    # This ensures Step 7 preserves TC-specific stub intent from testcase_plan.json.
     if ($StubFunctionNames.Count -gt 0) {
         $stubOvr = Parse-StubOverrides -StubFunctionNames $StubFunctionNames
-        $ovrFuncs = @(
-            $allFunctions.Keys | Sort-Object | ForEach-Object {
-                $f = $allFunctions[$_]
-                if ($f.ReturnType -ne 'void' -and $stubOvr.ContainsKey($f.Name) -and $null -ne $stubOvr[$f.Name]) { $f }
+        $requestedFuncs = @()
+        foreach ($ovrName in @($stubOvr.Keys | Sort-Object -Unique)) {
+            # Add synthetic signatures for plan-only stubs when interface parsing missed them.
+            if (-not $allFunctions.ContainsKey($ovrName)) {
+                $allFunctions[$ovrName] = @{ Name = $ovrName; ReturnType = 'int'; Parameters = 'void' }
             }
-        )
-        if ($ovrFuncs.Count -gt 0) {
+            $f = $allFunctions[$ovrName]
+            if ($f -and $f.ReturnType -ne 'void') { $requestedFuncs += $f }
+        }
+        if ($requestedFuncs.Count -gt 0) {
             $out += "`t`t`t`$stubfunctions {`n"
-            foreach ($sf in $ovrFuncs) {
+            foreach ($sf in $requestedFuncs) {
                 $sig = "$($sf.ReturnType) $($sf.Name)($($sf.Parameters))"
                 $raw = $stubOvr[$sf.Name]
                 if ($raw.StartsWith('__BODY__|')) {
                     $retVal = $raw.Substring(9)
-                } else {
+                } elseif ($null -ne $raw -and $raw -ne '') {
                     $norm = Normalize-StubReturnValue -ReturnType $sf.ReturnType -RawValue $raw
                     $retVal = if ($norm) { "return $norm;" } else { Get-StubDefaultReturn -ReturnType $sf.ReturnType }
+                } else {
+                    $retVal = Get-StubDefaultReturn -ReturnType $sf.ReturnType
                 }
                 if ($sig -match '\[') { $out += "`t`t`t`t'$sig' '''`n" } else { $out += "`t`t`t`t$sig '''`n" }
                 if ($retVal) { $out += "`t`t`t`t`t$retVal`n" }
@@ -369,6 +396,18 @@ function Build-TCInputsOutputs {
                 $targetName = "target_$shortName"
                 $out += "`t`t`t`t$varName`[0`] = $targetName`n"
                 $out += "`t`t`t`t&$targetName`[0`] = $defVal`n"
+            } elseif ($gv.FullDeclaration -match '\*') {
+                # Pointer scalar: preserve pointer-member overrides when provided.
+                $targetName = "target_$shortName"
+                $out += "`t`t`t`t$varName = $targetName`n"
+                $memberOverrides = if ($script:_pointerMemberOverrides.ContainsKey($shortName)) { $script:_pointerMemberOverrides[$shortName] } else { $null }
+                if ($memberOverrides -and $memberOverrides.Count -gt 0) {
+                    foreach ($entry in $memberOverrides.GetEnumerator() | Sort-Object Name) {
+                        $out += "`t`t`t`t$targetName.$($entry.Name) = $($entry.Value)`n"
+                    }
+                } else {
+                    $out += "`t`t`t`t&$targetName`[0`] = $defVal`n"
+                }
             } elseif ($gv.ArrayLength -gt 0) {
                 # Scalar array — use per-index overrides when present, else default to [0]
                 if ($script:_pointerIndexedOverrides.ContainsKey($shortName) -and $script:_pointerIndexedOverrides[$shortName].Count -gt 0) {
@@ -460,7 +499,15 @@ function Build-TCInputsOutputs {
                 # Pointer parameter
                 $targetName = "target_$pName"
                 $out += "`t`t`t`t$pName = $targetName`n"
-                $out += "`t`t`t`t&$targetName`[0`] = $defVal`n"
+                $memberOverrides = if ($script:_pointerMemberOverrides.ContainsKey($pName)) { $script:_pointerMemberOverrides[$pName] } else { $null }
+                if ($memberOverrides -and $memberOverrides.Count -gt 0) {
+                    # Preserve pointer-member inputs from SetValues, e.g. config_ptr->field.
+                    foreach ($entry in $memberOverrides.GetEnumerator() | Sort-Object Name) {
+                        $out += "`t`t`t`t$targetName[0].$($entry.Name) = $($entry.Value)`n"
+                    }
+                } else {
+                    $out += "`t`t`t`t&$targetName`[0`] = $defVal`n"
+                }
             } else {
                 $out += "`t`t`t`t$pName = $defVal`n"
             }

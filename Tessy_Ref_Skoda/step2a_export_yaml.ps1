@@ -20,6 +20,7 @@ Write-Host "  Test Object: $TestObject" -ForegroundColor Cyan
 Write-Host "================================================================================" -ForegroundColor Cyan
 
 Set-Location $ScriptRoot
+$tessy = Join-Path $ScriptRoot "tessycmd.exe"
 
 # Create yml folder for exports
 $ymlFolder = "$ExportDir\yml"
@@ -31,7 +32,7 @@ if (-not (Test-Path $ymlFolder)) {
 Write-Host "`n[EXPORT] Exporting current configuration to YAML..." -ForegroundColor Yellow
 $yamlFile   = "$ymlFolder\${TestObject}_export.yml"
 $exportFile = "${TestObject}_export"
-tessycmd export -format yaml -expected -file $exportFile "$ymlFolder"
+& $tessy export -format yaml -expected -file $exportFile "$ymlFolder"
 if (-not (Test-Path $yamlFile)) {
     Write-Host "ERROR: Export file not created: $yamlFile" -ForegroundColor Red
     exit 1

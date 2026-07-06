@@ -54,6 +54,55 @@ function Parse-HtmlRows {
 }
 
 # ============================================================================
+# Helper: Resolve report file location across common Tessy report roots
+# ============================================================================
+function Resolve-ReportFilePath {
+    param(
+        [string]$TestObject,
+        [string]$PreferredReportDir,
+        [string]$OutputDir
+    )
+
+    $fileName = "TESSY_DetailsReport_${TestObject}.html"
+    $candidates = @()
+
+    if (-not [string]::IsNullOrWhiteSpace($PreferredReportDir)) {
+        $candidates += [System.IO.Path]::GetFullPath($PreferredReportDir)
+
+        $preferredParent = Split-Path -Parent ([System.IO.Path]::GetFullPath($PreferredReportDir))
+        if (-not [string]::IsNullOrWhiteSpace($preferredParent)) {
+            $candidates += (Join-Path $preferredParent "report")
+            $candidates += (Join-Path $preferredParent "bin\report")
+        }
+    }
+
+    if (-not [string]::IsNullOrWhiteSpace($OutputDir)) {
+        $normalizedOutputDir = [System.IO.Path]::GetFullPath($OutputDir)
+        $candidates += (Join-Path $normalizedOutputDir "report")
+    }
+
+    # Also check the tessy executable's sibling report roots if available.
+    if (-not [string]::IsNullOrWhiteSpace($env:TESSY_BIN_DIR)) {
+        $normalizedTessyBinDir = [System.IO.Path]::GetFullPath($env:TESSY_BIN_DIR)
+        $candidates += (Join-Path $normalizedTessyBinDir "report")
+        $tessyParent = Split-Path -Parent $normalizedTessyBinDir
+        if (-not [string]::IsNullOrWhiteSpace($tessyParent)) {
+            $candidates += (Join-Path $tessyParent "report")
+        }
+    }
+
+    foreach ($dir in ($candidates | Where-Object { -not [string]::IsNullOrWhiteSpace($_) } | Select-Object -Unique)) {
+        if (-not (Test-Path $dir)) { continue }
+        $candidatePath = Join-Path $dir $fileName
+        if (Test-Path $candidatePath) {
+            return $candidatePath
+        }
+    }
+
+    return $null
+}
+
+# ============================================================================
 # Helper: Build hierarchical variable list from HTML row matches
 # ============================================================================
 function Build-VarList {
@@ -136,12 +185,13 @@ function Build-VarList {
 # ============================================================================
 # Load HTML report
 # ============================================================================
-$htmlReportPath = "$ReportDir\TESSY_DetailsReport_${TestObject}.html"
-if (-not (Test-Path $htmlReportPath)) {
-    Write-Host "ERROR: HTML report not found: $htmlReportPath" -ForegroundColor Red
+$htmlReportPath = Resolve-ReportFilePath -TestObject $TestObject -PreferredReportDir $ReportDir -OutputDir $OutputDir
+if ([string]::IsNullOrWhiteSpace($htmlReportPath) -or -not (Test-Path $htmlReportPath)) {
+    $expectedPath = "$ReportDir\TESSY_DetailsReport_${TestObject}.html"
+    Write-Host "ERROR: HTML report not found: $expectedPath" -ForegroundColor Red
     exit 1
 }
-Write-Host "`n[PARSE] Reading: TESSY_DetailsReport_${TestObject}.html" -ForegroundColor Yellow
+Write-Host "`n[PARSE] Reading: $htmlReportPath" -ForegroundColor Yellow
 $htmlContent = Get-Content $htmlReportPath -Raw
 
 # ============================================================================

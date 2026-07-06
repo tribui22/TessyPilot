@@ -65,6 +65,7 @@ Write-Host "  Report Dir: $ReportDir" -ForegroundColor DarkGray
 Write-Host "================================================================================" -ForegroundColor Cyan
 
 Set-Location $ScriptRoot
+$tessy = Join-Path $ScriptRoot "tessycmd.exe"
 
 $ymlFolder = "$ExportDir\yml"
 $yamlFile  = "$ymlFolder\${TestObject}_export.yml"
@@ -199,20 +200,20 @@ Write-Host "`n[IMPORT] Importing YAML (twice for reliability)..." -ForegroundCol
 Write-Host "  YAML file: $yamlFile" -ForegroundColor DarkGray
 
 Write-Host "`n--- Import attempt 1/2 ---" -ForegroundColor DarkCyan
-Write-Host "  CMD: tessycmd import $yamlFile" -ForegroundColor DarkGray
-$import1Output = tessycmd import $yamlFile 2>&1
+Write-Host "  CMD:& $tessy import $yamlFile" -ForegroundColor DarkGray
+$import1Output = & $tessy import $yamlFile 2>&1
 $import1Exit = $LASTEXITCODE
-if ($import1Output) { $import1Output | ForEach-Object { Write-Host "  [tessycmd] $_" -ForegroundColor Gray } } else { Write-Host "  [tessycmd] (no output)" -ForegroundColor DarkGray }
+if ($import1Output) { $import1Output | ForEach-Object { Write-Host "  [& $tessy] $_" -ForegroundColor Gray } } else { Write-Host "  [& $tessy] (no output)" -ForegroundColor DarkGray }
 if ($import1Exit -eq 0) { $c1 = "Green" } else { $c1 = "Yellow" }
 Write-Host "  Exit code: $import1Exit" -ForegroundColor $c1
 
 Start-Sleep -Seconds 8
 
 Write-Host "`n--- Import attempt 2/2 ---" -ForegroundColor DarkCyan
-Write-Host "  CMD: tessycmd import $yamlFile" -ForegroundColor DarkGray
-$import2Output = tessycmd import $yamlFile 2>&1
+Write-Host "  CMD:& $tessy import $yamlFile" -ForegroundColor DarkGray
+$import2Output = & $tessy import $yamlFile 2>&1
 $importExit = $LASTEXITCODE
-if ($import2Output) { $import2Output | ForEach-Object { Write-Host "  [tessycmd] $_" -ForegroundColor Gray } } else { Write-Host "  [tessycmd] (no output)" -ForegroundColor DarkGray }
+if ($import2Output) { $import2Output | ForEach-Object { Write-Host "  [& $tessy] $_" -ForegroundColor Gray } } else { Write-Host "  [& $tessy] (no output)" -ForegroundColor DarkGray }
 if ($importExit -eq 0) { $c2 = "Green" } else { $c2 = "Yellow" }
 Write-Host "  Exit code: $importExit" -ForegroundColor $c2
 

@@ -103,6 +103,43 @@ function Parse-StubOverrides {
 }
 
 # ---------------------------------------------------------------------------
+# Build effective non-void stub set from:
+#   1) interface-parsed functions in $allFunctions
+#   2) plan-declared StubFunctions that are missing in $allFunctions
+# Missing functions are synthesized with a safe default signature so that
+# plan stubs are never silently dropped.
+# ---------------------------------------------------------------------------
+function Get-EffectiveNonVoidStubs {
+    param([object[]]$StubFunctionNames)
+
+    $result = @(
+        $allFunctions.Keys | Sort-Object | ForEach-Object {
+            $f = $allFunctions[$_]
+            if ($f.ReturnType -ne 'void') { $f }
+        }
+    )
+
+    $existingNames = @{}
+    foreach ($f in $result) { $existingNames[$f.Name] = $true }
+
+    $stubOverrides = Parse-StubOverrides -StubFunctionNames $StubFunctionNames
+    foreach ($name in $stubOverrides.Keys) {
+        if (-not $existingNames.ContainsKey($name)) {
+            $synthetic = @{
+                Name = $name
+                ReturnType = 'int'
+                Parameters = 'void'
+            }
+            $result += $synthetic
+            $existingNames[$name] = $true
+            Write-Host "[STUB] '$name' missing in interface parse; using synthesized signature: int $name(void)" -ForegroundColor Yellow
+        }
+    }
+
+    return @($result | Sort-Object Name -Unique)
+}
+
+# ---------------------------------------------------------------------------
 # Build stub section + $teststep header for one test case.
 #
 # ALL non-void functions from $allFunctions (external + local) are always
@@ -119,13 +156,8 @@ function Build-TCStubs {
     # Parse explicit overrides from the TC plan entry
     $stubOverrides = Parse-StubOverrides -StubFunctionNames $StubFunctionNames
 
-    # All non-void functions from conditions file header, sorted by name
-    $nonVoidFuncs = @(
-        $allFunctions.Keys | Sort-Object | ForEach-Object {
-            $f = $allFunctions[$_]
-            if ($f.ReturnType -ne 'void') { $f }
-        }
-    )
+    # Include non-void interface functions + any plan-only stub functions.
+    $nonVoidFuncs = Get-EffectiveNonVoidStubs -StubFunctionNames $StubFunctionNames
 
     # ---- $testcase-level $stubfunctions (non-void only) ----
     if ($nonVoidFuncs.Count -gt 0) {
@@ -182,13 +214,10 @@ function Build-TCStubs {
 # each $teststep block by Build-TCInputsOutputs when StubFunctionNames is set.
 # ============================================================================
 function Build-TestObjectStubs {
-    # All non-void functions from conditions file header, sorted by name
-    $nonVoidFuncs = @(
-        $allFunctions.Keys | Sort-Object | ForEach-Object {
-            $f = $allFunctions[$_]
-            if ($f.ReturnType -ne 'void') { $f }
-        }
-    )
+    param([object[]]$PlanStubFunctionNames = @())
+
+    # Include non-void interface functions + any plan-only stub functions.
+    $nonVoidFuncs = Get-EffectiveNonVoidStubs -StubFunctionNames $PlanStubFunctionNames
 
     if ($nonVoidFuncs.Count -eq 0) {
         Write-Host "[TESTOBJECT-STUBS] No non-void stub functions found" -ForegroundColor DarkGray

@@ -1393,12 +1393,11 @@ $hasBranches = ($ifCount -gt 0 -or $switches.Count -gt 0 -or $returns.Count -gt 
 #   • else-if continuations are covered within those same TCs — no extra TCs needed
 #   • 1 switch default → 1 extra TC (out-of-set enum value)
 #
-# numTestCases = MAX( cases_C0, standaloneIfs_C1 × 2 ) + default_TC
-# Smart test case count logic
-if (-not $hasParameters -and -not $hasGlobalVars -and -not $hasBranches) {
-    # Simple function: void parameters, no global vars, no branches -> only 1 test case needed
-    $numTestCases = 1
-    Write-Host "  [SIMPLE FUNCTION] No parameters, no global vars, no branches -> 1 test case sufficient for 100% coverage" -ForegroundColor Green
+# Branchless functions still need one execution testcase to call the function
+# and validate the statement path, regardless of globals/parameters.
+if (-not $hasBranches) {
+    $numTestCases = [Math]::Max(1, $returns.Count)
+    Write-Host "  [SIMPLE FUNCTION] No branches -> $numTestCases test case(s) sufficient for coverage" -ForegroundColor Green
 } else {
     # C0 minimum: 1 TC per switch case
     $c0Min = if ($switches.Count -gt 0 -and $cases.Count -gt 0) { $cases.Count } else { 2 }
@@ -1754,7 +1753,13 @@ if ($scriptFileExists) {
     $testScriptContent = "`$testobject {`n"
 
     # 1. Testobject-level $stubfunctions (all non-void stubs, default return values)
-    $testScriptContent += Build-TestObjectStubs
+    $planStubAggregate = @()
+    foreach ($tc in $planTestCases) {
+        if ($tc.PSObject.Properties['StubFunctions'] -and $tc.StubFunctions) {
+            $planStubAggregate += @($tc.StubFunctions)
+        }
+    }
+    $testScriptContent += Build-TestObjectStubs -PlanStubFunctionNames $planStubAggregate
 
     # 2. Each plan TC becomes a separate $testcase N { $teststep N.1 { ... } }
     $tcNum = 0

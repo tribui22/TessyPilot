@@ -136,7 +136,7 @@ $batchContentHtml = @"
         </operation>
         <operation key="generateTestReport">
             <options>
-                <option key="reportOutputDirectory" value="`$(PROJECTROOT)\report"/>
+                <option key="reportOutputDirectory" value="$ReportDir"/>
                 <option key="reportFileNamePattern" value="TESSY_DetailsReport_`$(TESTOBJECT)"/>
                 <option key="reportOutputFormat" value="html"/>
             </options>
