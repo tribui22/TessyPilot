@@ -6,7 +6,8 @@
 #   LOCAL FUNCTIONS sections of _conditions_after_passing.c header)
 #
 # Behavior:
-#   - Always stubs ALL non-void functions (external + local) in every TC.
+#   - Emits all discovered testobject-level stubs (void + non-void).
+#   - Emits only non-void per-TC stub overrides.
 #   - If TC's StubFunctions contains a legacy string override
 #     ("funcName=value", "funcName:value", "funcName returns value") or
 #     an object entry ({ Name, Return }) -> use that value for the stub.
@@ -136,7 +137,43 @@ function Get-EffectiveNonVoidStubs {
         }
     }
 
-    return @($result | Sort-Object Name -Unique)
+    return @($result | Sort-Object { $_.Name } -Unique)
+}
+
+# ---------------------------------------------------------------------------
+# Build effective stub set from:
+#   1) interface/YAML/source-parsed functions in $allFunctions
+#   2) plan-declared StubFunctions that are missing in $allFunctions
+# Missing functions are synthesized with a safe default signature so that
+# plan stubs are never silently dropped.
+# ---------------------------------------------------------------------------
+function Get-EffectiveStubs {
+    param([object[]]$StubFunctionNames)
+
+    $result = @(
+        $allFunctions.Keys | Sort-Object | ForEach-Object {
+            $allFunctions[$_]
+        }
+    )
+
+    $existingNames = @{}
+    foreach ($f in $result) { $existingNames[$f.Name] = $true }
+
+    $stubOverrides = Parse-StubOverrides -StubFunctionNames $StubFunctionNames
+    foreach ($name in $stubOverrides.Keys) {
+        if (-not $existingNames.ContainsKey($name)) {
+            $synthetic = @{
+                Name = $name
+                ReturnType = 'int'
+                Parameters = 'void'
+            }
+            $result += $synthetic
+            $existingNames[$name] = $true
+            Write-Host "[STUB] '$name' missing in interface parse; using synthesized signature: int $name(void)" -ForegroundColor Yellow
+        }
+    }
+
+    return @($result | Sort-Object { $_.Name } -Unique)
 }
 
 # ---------------------------------------------------------------------------
@@ -209,23 +246,24 @@ function Build-TCStubs {
 # ============================================================================
 # Build-TestObjectStubs
 # Generates the $testobject-level $stubfunctions block (called ONCE, before
-# the $testcase 1 header). All non-void functions get a default return value.
+# the $testcase 1 header). Void stubs get an empty body; non-void stubs get
+# a type-appropriate default return value.
 # Per-TC stub overrides (different return values) are handled inline inside
 # each $teststep block by Build-TCInputsOutputs when StubFunctionNames is set.
 # ============================================================================
 function Build-TestObjectStubs {
     param([object[]]$PlanStubFunctionNames = @())
 
-    # Include non-void interface functions + any plan-only stub functions.
-    $nonVoidFuncs = Get-EffectiveNonVoidStubs -StubFunctionNames $PlanStubFunctionNames
+    # Include all discovered interface/YAML/source functions + any plan-only stubs.
+    $allEffectiveStubs = Get-EffectiveStubs -StubFunctionNames $PlanStubFunctionNames
 
-    if ($nonVoidFuncs.Count -eq 0) {
-        Write-Host "[TESTOBJECT-STUBS] No non-void stub functions found" -ForegroundColor DarkGray
+    if ($allEffectiveStubs.Count -eq 0) {
+        Write-Host "[TESTOBJECT-STUBS] No stub functions found" -ForegroundColor DarkGray
         return ""
     }
 
     $out = "`t`$stubfunctions {`n"
-    foreach ($sf in $nonVoidFuncs) {
+    foreach ($sf in $allEffectiveStubs) {
         $sig    = "$($sf.ReturnType) $($sf.Name)($($sf.Parameters))"
         $retVal = Get-StubDefaultReturn -ReturnType $sf.ReturnType
         if ($sig -match '\[') {
@@ -235,7 +273,8 @@ function Build-TestObjectStubs {
         }
         if ($retVal) { $out += "`t`t`t$retVal`n" }
         $out += "`t`t'''`n"
-        Write-Host "[TESTOBJECT-STUB] $($sf.Name)() -> $($sf.ReturnType) [default]" -ForegroundColor Cyan
+        $note = if ($retVal) { '[default]' } else { '[void]' }
+        Write-Host "[TESTOBJECT-STUB] $($sf.Name)() -> $($sf.ReturnType) $note" -ForegroundColor Cyan
     }
     $out += "`t}`n`n"
     return $out

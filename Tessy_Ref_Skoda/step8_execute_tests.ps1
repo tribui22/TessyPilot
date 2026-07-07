@@ -35,7 +35,12 @@ Write-Host "  Script: $scriptFile" -ForegroundColor DarkGray
 
 $importOutput = tessycmd import "$scriptFile" 2>&1
 Write-Host $importOutput
-Write-Host "[INFO] Import done (exit $LASTEXITCODE) - continuing to execute tests..." -ForegroundColor DarkGray
+$importExitCode = $LASTEXITCODE
+if ($importExitCode -ne 0) {
+    Write-Host "[ERROR] Import failed (exit $importExitCode). Stop here to avoid running with invalid stub/testcase state." -ForegroundColor Red
+    exit $importExitCode
+}
+Write-Host "[INFO] Import done (exit $importExitCode)" -ForegroundColor DarkGray
 
 # Execute tests and generate report using batch file from Step 1
 Write-Host "`n[EXECUTE] Executing tests and generating report..." -ForegroundColor Yellow

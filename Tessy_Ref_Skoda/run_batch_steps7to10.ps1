@@ -134,6 +134,21 @@ foreach ($i in 0..($total - 1)) {
         Write-Host "`n[STEPS7-10] Calling STEP 7: Generate Test Cases (Iteration $iteration)" -ForegroundColor Cyan
 
         $existingScript = "$WorkDir\script_files\${testObject}_testcase.script"
+        $legacyScript   = "$WorkDir\script_files\${testObject}_testcase.script.script"
+
+        # Force full regeneration by removing stale script files so Step 7 enters CREATE mode
+        # and rebuilds the testobject-level stubfunctions section from current interface/YAML.
+        if (($iteration -eq 1) -and $ForceRegenerateTestcases -and (-not $isCorrectionPass)) {
+            if (Test-Path $existingScript) {
+                Write-Host "[STEPS7-10] ForceRegenerateTestcases=TRUE - removing existing script: $existingScript" -ForegroundColor Yellow
+                Remove-Item -Path $existingScript -Force -ErrorAction SilentlyContinue
+            }
+            if (Test-Path $legacyScript) {
+                Write-Host "[STEPS7-10] Removing legacy script: $legacyScript" -ForegroundColor Yellow
+                Remove-Item -Path $legacyScript -Force -ErrorAction SilentlyContinue
+            }
+        }
+
         $skipStep4 = ($iteration -eq 1) -and (-not $ForceRegenerateTestcases) -and (Test-Path $existingScript) -and (-not $isCorrectionPass)
 
         if ($skipStep4) {

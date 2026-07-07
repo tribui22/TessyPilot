@@ -431,6 +431,269 @@ function Get-TypeDefault {
     return '0'
 }
 
+$script:functionSignatureCache = @{}
+$script:rawFunctionSource = ''
+
+function Normalize-CTypeText {
+    param([string]$Text)
+
+    if ([string]::IsNullOrWhiteSpace($Text)) { return '' }
+    return (($Text -replace '[\r\n\t]+', ' ' -replace '\s+', ' ').Trim())
+}
+
+function Split-CArgumentList {
+    param([string]$ArgumentText)
+
+    $args = @()
+    $current = ""
+    $parenDepth = 0
+    foreach ($ch in $ArgumentText.ToCharArray()) {
+        if ($ch -eq '(') { $parenDepth++ }
+        elseif ($ch -eq ')') { if ($parenDepth -gt 0) { $parenDepth-- } }
+
+        if ($ch -eq ',' -and $parenDepth -eq 0) {
+            $trimmed = $current.Trim()
+            if ($trimmed) { $args += $trimmed }
+            $current = ""
+            continue
+        }
+
+        $current += $ch
+    }
+
+    $tail = $current.Trim()
+    if ($tail) { $args += $tail }
+    return $args
+}
+
+function Get-FunctionCallSite {
+    param(
+        [string]$FunctionName,
+        [string]$RawFunctionSource
+    )
+
+    if ([string]::IsNullOrWhiteSpace($RawFunctionSource)) { return $null }
+
+    $nameEsc = [regex]::Escape($FunctionName)
+    foreach ($line in ($RawFunctionSource -split '\r?\n')) {
+        if ($line -notmatch "\b$nameEsc\s*\(") { continue }
+
+        $match = [regex]::Match($line, "\b$nameEsc\s*\(")
+        if (-not $match.Success) { continue }
+
+        $openIndex = $match.Index + $match.Length - 1
+        $depth = 0
+        $argBuilder = ""
+        for ($i = $openIndex + 1; $i -lt $line.Length; $i++) {
+            $ch = $line[$i]
+            if ($ch -eq '(') {
+                $depth++
+                $argBuilder += $ch
+                continue
+            }
+            if ($ch -eq ')') {
+                if ($depth -eq 0) {
+                    return @{
+                        Line = $line.Trim()
+                        Arguments = $argBuilder.Trim()
+                    }
+                }
+                $depth--
+                $argBuilder += $ch
+                continue
+            }
+            $argBuilder += $ch
+        }
+    }
+
+    return $null
+}
+
+function Get-VariableTypeFromFunctionSource {
+    param(
+        [string]$VariableName,
+        [string]$RawFunctionSource
+    )
+
+    if ([string]::IsNullOrWhiteSpace($VariableName) -or [string]::IsNullOrWhiteSpace($RawFunctionSource)) { return $null }
+
+    $varEsc = [regex]::Escape($VariableName)
+
+    if ($RawFunctionSource -match "(?ms)^[^{]+\((?<params>[^)]*)\)") {
+        $paramsText = $Matches['params']
+        foreach ($param in (Split-CArgumentList -ArgumentText $paramsText)) {
+            if ($param -match "^\s*(.+?)\s+\**$varEsc\s*(?:\[\s*\])?\s*$") {
+                return (Normalize-CTypeText $Matches[1])
+            }
+        }
+    }
+
+    foreach ($line in ($RawFunctionSource -split '\r?\n')) {
+        if ($line -match "^\s*(.+?)\s+\**$varEsc\s*(?:\[[^\]]*\])?\s*(?:=|;)") {
+            return (Normalize-CTypeText $Matches[1])
+        }
+    }
+
+    return $null
+}
+
+function Resolve-StubSignatureFromCallSite {
+    param(
+        [string]$FunctionName,
+        [string]$RawFunctionSource,
+        [string]$YamlStubBody = ''
+    )
+
+    $callSite = Get-FunctionCallSite -FunctionName $FunctionName -RawFunctionSource $RawFunctionSource
+    if ($null -eq $callSite) { return $null }
+
+    $returnType = $null
+    $line = [string]$callSite.Line
+    $nameEsc = [regex]::Escape($FunctionName)
+
+    if ($line -match "=\s*$nameEsc\s*\(") {
+        if ($line -match "^\s*(?:.+?\s+)?([A-Za-z_][A-Za-z0-9_]*)\s*=\s*$nameEsc\s*\(") {
+            $lhsName = $Matches[1]
+            $returnType = Get-VariableTypeFromFunctionSource -VariableName $lhsName -RawFunctionSource $RawFunctionSource
+        }
+        if (-not $returnType) { $returnType = 'int' }
+    } elseif ($line -match "$nameEsc\s*\([^)]*\)\s*==\s*(TRUE|FALSE)" -or $line -match "(TRUE|FALSE)\s*==\s*$nameEsc\s*\(") {
+        $returnType = 'boolean_t'
+    } elseif ($YamlStubBody -match '\breturn\b') {
+        $returnType = 'int'
+    } else {
+        $returnType = 'void'
+    }
+
+    $parameters = 'void'
+    $argsText = [string]$callSite.Arguments
+    if (-not [string]::IsNullOrWhiteSpace($argsText)) {
+        $paramParts = @()
+        $argIndex = 0
+        foreach ($arg in (Split-CArgumentList -ArgumentText $argsText)) {
+            $argIndex++
+            $argType = $null
+            $argName = "arg$argIndex"
+
+            if ($arg -match '^\(\s*([^)]+?)\s*\)\s*(.+)$') {
+                $argType = Normalize-CTypeText $Matches[1]
+                $expr = $Matches[2].Trim()
+                if ($expr -match '([A-Za-z_][A-Za-z0-9_]*)$') { $argName = $Matches[1] }
+            } elseif ($arg -match '^&?\s*([A-Za-z_][A-Za-z0-9_]*)$') {
+                $varName = $Matches[1]
+                $argType = Get-VariableTypeFromFunctionSource -VariableName $varName -RawFunctionSource $RawFunctionSource
+                $argName = $varName
+            }
+
+            if (-not $argType) { $argType = 'int' }
+            $paramParts += "$(Normalize-CTypeText $argType) $argName"
+        }
+
+        if ($paramParts.Count -gt 0) {
+            $parameters = $paramParts -join ', '
+        }
+    }
+
+    return @{
+        Name = $FunctionName
+        ReturnType = (Normalize-CTypeText $returnType)
+        Parameters = $parameters
+    }
+}
+
+function Resolve-FunctionSignatureFromSource {
+    param(
+        [string]$FunctionName,
+        [string]$SourceDir
+    )
+
+    if ($script:functionSignatureCache.ContainsKey($FunctionName)) {
+        return $script:functionSignatureCache[$FunctionName]
+    }
+
+    $resolved = $null
+    if (-not [string]::IsNullOrWhiteSpace($SourceDir) -and (Test-Path $SourceDir)) {
+        $nameEsc = [regex]::Escape($FunctionName)
+        $files  = @()
+        $files += Get-ChildItem -Path $SourceDir -Recurse -Include "*.h" -ErrorAction SilentlyContinue
+        $files += Get-ChildItem -Path $SourceDir -Recurse -Include "*.c" -ErrorAction SilentlyContinue
+
+        foreach ($file in $files) {
+            $content = Get-Content $file.FullName -Raw -ErrorAction SilentlyContinue
+            if (-not $content) { continue }
+
+            $match = [regex]::Match(
+                $content,
+                "(?ms)^[ \t]*(?<ret>[A-Za-z_][A-Za-z0-9_\s\*]+?)\s+\**$nameEsc\s*\((?<params>[^;{}]*)\)\s*(?:;|\{)"
+            )
+
+            if (-not $match.Success) { continue }
+
+            $resolved = @{
+                Name = $FunctionName
+                ReturnType = (Normalize-CTypeText $match.Groups['ret'].Value)
+                Parameters = (Normalize-CTypeText $match.Groups['params'].Value)
+            }
+            if (-not $resolved.Parameters) { $resolved.Parameters = 'void' }
+            break
+        }
+    }
+
+    $script:functionSignatureCache[$FunctionName] = $resolved
+    return $resolved
+}
+
+function Resolve-RequiredStubSignature {
+    param(
+        [string]$FunctionName,
+        [string]$SourceDir,
+        [string]$YamlStubBody = ''
+    )
+
+    $resolved = Resolve-FunctionSignatureFromSource -FunctionName $FunctionName -SourceDir $SourceDir
+    if ($resolved) { return $resolved }
+
+    $resolved = Resolve-StubSignatureFromCallSite -FunctionName $FunctionName -RawFunctionSource $script:rawFunctionSource -YamlStubBody $YamlStubBody
+    if ($resolved) { return $resolved }
+
+    $fallbackReturnType = if ($YamlStubBody -match '\breturn\b') { 'int' } else { 'void' }
+    return @{
+        Name = $FunctionName
+        ReturnType = $fallbackReturnType
+        Parameters = 'void'
+    }
+}
+
+function Get-CalledFunctionNamesFromRawSource {
+    param([string]$RawFunctionSource)
+
+    $calledNames = @()
+    if ([string]::IsNullOrWhiteSpace($RawFunctionSource)) { return $calledNames }
+
+    $keywords = @(
+        'if','else','switch','case','while','for','return','sizeof','do','break','continue',
+        'typedef','struct','union','enum','const','volatile','static'
+    )
+
+    # Restrict parsing to function body only, then strip comments/strings to avoid false matches.
+    $scanText = $RawFunctionSource
+    if ($scanText -match '(?ms)^[^{]*\{(?<body>.*)\}\s*$') {
+        $scanText = $Matches['body']
+    }
+    $scanText = [regex]::Replace($scanText, '/\*.*?\*/', ' ', [System.Text.RegularExpressions.RegexOptions]::Singleline)
+    $scanText = [regex]::Replace($scanText, '//.*?$', ' ', [System.Text.RegularExpressions.RegexOptions]::Multiline)
+    $scanText = [regex]::Replace($scanText, '"(?:\\.|[^"\\])*"', ' ')
+
+    $matches = [regex]::Matches($scanText, '\b([A-Za-z_][A-Za-z0-9_]*)\s*\(')
+    foreach ($m in $matches) {
+        $name = $m.Groups[1].Value
+        if ($keywords -contains $name) { continue }
+        if ($calledNames -notcontains $name) { $calledNames += $name }
+    }
+
+    return $calledNames
+}
+
 # Check if this is a retry iteration (look for existing test case file)
 
 $scriptDir = "$WorkingDir\script_files"
@@ -962,6 +1225,14 @@ if (Test-Path $analysisFile) {
     Write-Host "[ANALYSIS] Analysis file not present (optional - skipped)" -ForegroundColor DarkGray
 }
 
+$rawFunctionFile = "$WorkingDir\testObjectCode\${TestObject}.c"
+if (Test-Path $rawFunctionFile) {
+    $script:rawFunctionSource = Get-Content $rawFunctionFile -Raw
+    if (-not $functionBody -and $script:rawFunctionSource -match '(?ms)^[^{]+\{(?<body>.*)\}\s*$') {
+        $functionBody = $Matches['body'].Trim()
+    }
+}
+
 # ---- Load Branch Coverage Plan (from Step 3) if available ----
 $branchPlan = $null
 $branchPlanFile = "$jsonDir\${TestObject}_branch_plan.json"
@@ -1322,6 +1593,48 @@ if (Test-Path $stubAnalysisFile) {
     $stubContent = "No stub functions required"
 }
 
+# Fallback: recover required stub signatures from actual function call sites
+# when interface parsing or stub_list generation missed entries.
+$calledFunctions = Get-CalledFunctionNamesFromRawSource -RawFunctionSource $script:rawFunctionSource
+if ($calledFunctions.Count -gt 0) {
+    $knownFunctionNames = @($allFunctions.Keys)
+    $missingCallStubs = @($calledFunctions | Where-Object { $knownFunctionNames -notcontains $_ })
+
+    if ($missingCallStubs.Count -gt 0) {
+        Write-Host "[STUBS-FALLBACK] Recovering $($missingCallStubs.Count) called function(s) missing from interface parse:" -ForegroundColor Yellow
+        foreach ($fn in $missingCallStubs) {
+            $resolved = Resolve-RequiredStubSignature -FunctionName $fn -SourceDir $SourceDir
+            if (-not $resolved) { continue }
+
+            $allFunctions[$fn] = @{
+                Name = $resolved.Name
+                ReturnType = $resolved.ReturnType
+                Parameters = $resolved.Parameters
+            }
+
+            if ($resolved.ReturnType -eq 'void') {
+                if (-not ($voidExternalFunctions | Where-Object { $_.Name -eq $fn })) {
+                    $voidExternalFunctions += @{
+                        Name = $resolved.Name
+                        ReturnType = $resolved.ReturnType
+                        Parameters = $resolved.Parameters
+                    }
+                }
+            } else {
+                if (-not ($externalFunctions | Where-Object { $_.Name -eq $fn })) {
+                    $externalFunctions += @{
+                        Name = $resolved.Name
+                        ReturnType = $resolved.ReturnType
+                        Parameters = $resolved.Parameters
+                    }
+                }
+            }
+
+            Write-Host "  - recovered: $($resolved.ReturnType) $($resolved.Name)($($resolved.Parameters))" -ForegroundColor Cyan
+        }
+    }
+}
+
 # Note: non-void local functions with used return values are already in $externalFunctions
 # (added above from stub_list.txt). No special handling needed here.
 Write-Host "`n[STUBS] Checking local non-void functions for stub requirements..." -ForegroundColor Yellow
@@ -1433,7 +1746,7 @@ Write-Host "  Generating $numTestCases test case(s) in single .script file..." -
 # - Switch-driving stubs: their return value is used directly in a switch()
 #   statement.  Must be placed inside each $teststep with a per-TC return
 #   value so that each test case targets a different case: branch.
-# - All other stubs: placed once at $testobject level with return 0.
+# - All other stubs: placed once at $testobject level with default / empty body.
 # ============================================================================
 $allStubFunctions = @()
 $allStubFunctions += $externalFunctions
@@ -1449,21 +1762,68 @@ $yamlValidStubNames = @()
 if (Test-Path $ymlExportFile) {
     $ymlContent = Get-Content $ymlExportFile -Raw
     # YAML stubs look like:  - ['0', '0', FunctionName, '']
-    $stubMatches = [regex]::Matches($ymlContent, "-\s*\['\d+',\s*'\d+',\s*([a-zA-Z_][a-zA-Z0-9_]+),")
-    foreach ($m in $stubMatches) { $yamlValidStubNames += $m.Groups[1].Value }
+    $yamlStubBodies = @{}
+    $stubMatches = [regex]::Matches($ymlContent, "-\s*\['\d+',\s*'\d+',\s*([a-zA-Z_][a-zA-Z0-9_]+),\s*([^\]]*)\]")
+    foreach ($m in $stubMatches) {
+        $stubName = $m.Groups[1].Value
+        $stubBody = $m.Groups[2].Value.Trim()
+        if ($stubBody -match "^'(.*)'$") { $stubBody = $Matches[1] }
+        $yamlValidStubNames += $stubName
+        $yamlStubBodies[$stubName] = $stubBody
+    }
     if ($yamlValidStubNames.Count -gt 0) {
         Write-Host "[STUBS] YAML export lists $($yamlValidStubNames.Count) valid stub(s): $($yamlValidStubNames -join ', ')" -ForegroundColor Cyan
+        $missingYamlStubs = @($yamlValidStubNames | Where-Object { -not $allFunctions.ContainsKey($_) })
+        foreach ($stubName in $missingYamlStubs) {
+            $resolved = Resolve-RequiredStubSignature -FunctionName $stubName -SourceDir $SourceDir -YamlStubBody $yamlStubBodies[$stubName]
+            if (-not $resolved) { continue }
+
+            $allFunctions[$stubName] = @{
+                Name = $resolved.Name
+                ReturnType = $resolved.ReturnType
+                Parameters = $resolved.Parameters
+            }
+
+            if ($resolved.ReturnType -eq 'void') {
+                if (-not ($voidExternalFunctions | Where-Object { $_.Name -eq $stubName })) {
+                    $voidExternalFunctions += @{
+                        Name = $resolved.Name
+                        ReturnType = $resolved.ReturnType
+                        Parameters = $resolved.Parameters
+                    }
+                }
+            } else {
+                if (-not ($externalFunctions | Where-Object { $_.Name -eq $stubName })) {
+                    $externalFunctions += @{
+                        Name = $resolved.Name
+                        ReturnType = $resolved.ReturnType
+                        Parameters = $resolved.Parameters
+                    }
+                }
+            }
+
+            Write-Host "[STUBS] Recovered missing stub signature from YAML/source: $($resolved.ReturnType) $($resolved.Name)($($resolved.Parameters))" -ForegroundColor Cyan
+        }
+
+        $allStubFunctions = @()
+        $allStubFunctions += $externalFunctions
+        $allStubFunctions += $voidExternalFunctions
+
         $removedStubs = @($allStubFunctions | Where-Object { $yamlValidStubNames -notcontains $_.Name })
         if ($removedStubs.Count -gt 0) {
             # Separate truly excluded stubs (not in stub_list) from ones that should be registered
             # Non-void stubs from stub_list.txt are legitimately required â€” re-register them in YAML.
-            $requiredStubNames = if (Test-Path $stubAnalysisFile) {
-                (Get-Content "$WorkingDir\stub_files\${TestObject}_stub_list.txt" -ErrorAction SilentlyContinue) |
+            $requiredStubNames = @()
+            if (Test-Path $stubAnalysisFile) {
+                $requiredStubNames += (Get-Content "$WorkingDir\stub_files\${TestObject}_stub_list.txt" -ErrorAction SilentlyContinue) |
                     Where-Object { $_.Trim() -ne '' } |
                     ForEach-Object {
                         if ($_ -match '([a-zA-Z_][a-zA-Z0-9_]+)\s*\(') { $Matches[1] } else { $_.Trim() }
                     }
-            } else { @() }
+            }
+            # Include all source-detected calls so required stubs are not dropped when stub_list is incomplete.
+            $requiredStubNames += $calledFunctions
+            $requiredStubNames = @($requiredStubNames | Select-Object -Unique)
 
             $stubsToRegister = @($removedStubs | Where-Object {
                 $_.ReturnType -ne 'void' -and ($requiredStubNames -contains $_.Name)
@@ -1484,16 +1844,52 @@ if (Test-Path $ymlExportFile) {
                     if ($ymlPatch -match "(?ms)---\r?\nStubs:\r?\n(.*?)(?=\r?\n---)") {
                         $existingSection = $Matches[1]
                         $existingNames = [System.Collections.Generic.List[string]]@()
+                        $existingBodies = @{}
                         $existingSection -split "`n" | ForEach-Object {
-                            if ($_ -match "'\s*0'\s*,\s*'[^']*'\s*,\s*([^,]+)\s*,") { $existingNames.Add($Matches[1].Trim()) }
+                            if ($_ -match "^\s*-\s*\['[^']*',\s*'[^']*',\s*([^,\]]+),\s*'(.*)'\s*\]") {
+                                $stubName = $Matches[1].Trim()
+                                $stubBody = $Matches[2]
+                                $existingNames.Add($stubName)
+                                $existingBodies[$stubName] = $stubBody
+                            } elseif ($_ -match "'\s*0'\s*,\s*'[^']*'\s*,\s*([^,]+)\s*,") {
+                                $existingNames.Add($Matches[1].Trim())
+                            }
                         }
                         $allNames = ($existingNames + @($stubsToRegister | ForEach-Object { $_.Name })) | Sort-Object -Unique
-                        $newLines = ($allNames | ForEach-Object { "- ['0', '0', $_, '']" }) -join "`r`n"
+                        $newLines = ($allNames | ForEach-Object {
+                            $name = $_
+                            $funcInfo = $allFunctions[$name]
+                            $retType = if ($funcInfo -and $funcInfo.ReturnType) { $funcInfo.ReturnType } else { '' }
+                            $body = if ($existingBodies.ContainsKey($name)) { $existingBodies[$name] } else { '' }
+
+                            # Ensure non-void stubs never end up with empty body.
+                            if (($retType -ne '') -and ($retType -ne 'void') -and [string]::IsNullOrWhiteSpace($body)) {
+                                if ($retType -match '\*')                  { $body = 'return (void *)0;' }
+                                elseif ($retType -match '\b(float|double)\b')  { $body = 'return 0.0;' }
+                                elseif ($retType -match '\b(boolean_t|bool)\b') { $body = 'return FALSE;' }
+                                elseif ($retType -match '^struct\s+(\w+)')      { $body = 'return (struct ' + $Matches[1] + '){0};' }
+                                else                                           { $body = 'return 0;' }
+                            }
+
+                            "- ['0', '0', $name, '$body']"
+                        }) -join "`r`n"
                         $newBlock = "---`r`nStubs:`r`n$newLines`r`n"
                         $ymlPatch = $ymlPatch -replace '(?ms)---\r?\nStubs:.*?(?=\r?\n---)', $newBlock.TrimEnd("`r`n")
                     }
                 } else {
-                    $newBlock = "---`r`nStubs:`r`n" + (($stubsToRegister | ForEach-Object { "- ['0', '0', $($_.Name), '']" }) -join "`r`n") + "`r`n"
+                    $newBlock = "---`r`nStubs:`r`n" + (($stubsToRegister | ForEach-Object {
+                        $name = $_.Name
+                        $retType = $_.ReturnType
+                        $body = ''
+                        if ($retType -and $retType -ne 'void') {
+                            if ($retType -match '\*')                  { $body = 'return (void *)0;' }
+                            elseif ($retType -match '\b(float|double)\b')  { $body = 'return 0.0;' }
+                            elseif ($retType -match '\b(boolean_t|bool)\b') { $body = 'return FALSE;' }
+                            elseif ($retType -match '^struct\s+(\w+)')      { $body = 'return (struct ' + $Matches[1] + '){0};' }
+                            else                                           { $body = 'return 0;' }
+                        }
+                        "- ['0', '0', $name, '$body']"
+                    }) -join "`r`n") + "`r`n"
                     $ymlPatch = $ymlPatch -replace '(---\r?\nValues:)', "$newBlock`$1"
                 }
                 $utf8NoBom = New-Object System.Text.UTF8Encoding $false
@@ -1552,12 +1948,12 @@ foreach ($sf in $testCaseNonVoidStubs) {
     }
 }
 
-# Void stubs are skipped - void external functions do not need stub bodies.
+# Void stubs remain at $testobject level with empty bodies.
 # All non-void stubs are placed per-$testcase (see below).
 $stubFunctionsSection = ""
 if ($testObjectVoidStubs.Count -gt 0) {
-    Write-Host "`n[STUBS] Skipping $($testObjectVoidStubs.Count) void function(s) - void functions do not require stubs" -ForegroundColor DarkGray
-    foreach ($sf in $testObjectVoidStubs) { Write-Host "  - (skipped) void $($sf.Name)(...)" -ForegroundColor DarkGray }
+    Write-Host "`n[STUBS] $($testObjectVoidStubs.Count) void function(s) will be emitted at `$testobject level:" -ForegroundColor DarkGray
+    foreach ($sf in $testObjectVoidStubs) { Write-Host "  - (testobject) void $($sf.Name)(...)" -ForegroundColor DarkGray }
 } elseif ($allStubFunctions.Count -gt 0) {
     Write-Host "`n[STUBS] All non-switch stubs are non-void - stubs will be placed per-`$testcase" -ForegroundColor DarkGray
 } else {

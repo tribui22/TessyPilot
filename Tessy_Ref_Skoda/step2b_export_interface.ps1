@@ -54,6 +54,62 @@ function Parse-HtmlRows {
 }
 
 # ============================================================================
+# Helper: Extract function signatures from a named HTML section
+# Supports current Tessy report format where functions appear as
+# <div ... style="...margin-left: 10pt;...">ret name(args)</div>
+# ============================================================================
+function Get-FunctionsFromHtmlSection {
+    param(
+        [string]$HtmlContent,
+        [string]$SectionTitle,
+        [string[]]$NextSectionTitles
+    )
+
+    if ([string]::IsNullOrWhiteSpace($HtmlContent) -or [string]::IsNullOrWhiteSpace($SectionTitle)) {
+        return @()
+    }
+
+    $startPattern = '>' + [regex]::Escape($SectionTitle) + '</div>'
+    $startMatch = [regex]::Match($HtmlContent, $startPattern, [System.Text.RegularExpressions.RegexOptions]::IgnoreCase)
+    if (-not $startMatch.Success) { return @() }
+
+    $startIdx = $startMatch.Index + $startMatch.Length
+    $endIdx = $HtmlContent.Length
+
+    foreach ($title in $NextSectionTitles) {
+        if ([string]::IsNullOrWhiteSpace($title)) { continue }
+        $nextPattern = '>' + [regex]::Escape($title) + '</div>'
+        $m = [regex]::Match($HtmlContent, $nextPattern, [System.Text.RegularExpressions.RegexOptions]::IgnoreCase)
+        if ($m.Success -and $m.Index -gt $startIdx -and $m.Index -lt $endIdx) {
+            $endIdx = $m.Index
+        }
+    }
+
+    if ($endIdx -le $startIdx) { return @() }
+    $section = $HtmlContent.Substring($startIdx, $endIdx - $startIdx)
+
+    $result = @()
+    $lineMatches = [regex]::Matches(
+        $section,
+        '<div[^>]*style="[^"]*margin-left:\s*10pt;?[^"]*"[^>]*>(.*?)</div>',
+        [System.Text.RegularExpressions.RegexOptions]::Singleline -bor [System.Text.RegularExpressions.RegexOptions]::IgnoreCase
+    )
+
+    foreach ($lm in $lineMatches) {
+        $rawSig = $lm.Groups[1].Value
+        $sig = ($rawSig -replace '<br\s*/?>', '' -replace '&#xa0;|&#x20;|&nbsp;', ' ' -replace '\s+', ' ').Trim()
+        if ($sig -match '^([a-zA-Z_][a-zA-Z0-9_\s\*]+?)\s+([a-zA-Z_][a-zA-Z0-9_]*)\s*\(([^)]*)\)\s*$') {
+            $ret = ($Matches[1] -replace '\s+', ' ').Trim()
+            $name = $Matches[2].Trim()
+            $args = ($Matches[3] -replace '\s+', ' ').Trim()
+            $result += "$ret $name($args)"
+        }
+    }
+
+    return @($result | Select-Object -Unique)
+}
+
+# ============================================================================
 # Helper: Resolve report file location across common Tessy report roots
 # ============================================================================
 function Resolve-ReportFilePath {
@@ -207,49 +263,32 @@ $interfaceData = @{
 }
 
 # ============================================================================
-# Regex pattern for function signatures
-# Allows <br> tags within return type and parameter list (Tessy wraps long
-# signatures mid-token with <br/>, e.g. "unsigned sh<br/>ort").
-# ============================================================================
-$funcPat = '(?s)<div class="style_59" style=" margin-left: 10pt;">((?:[^<]|<br\s*/?>)+?)\s+(\w+)\s*\(((?:[^)<]|<br\s*/?>)*)\)</div>'
-
-# ============================================================================
 # External Functions
 # ============================================================================
-$extFuncMatch = '(?s)>External Functions</div>.*?<tr[^>]*valign="top"[^>]*>(.*?)(?=<tr[^>]*>\s*<td[^>]*>\s*<div[^>]*>(?:Local Functions|Static/Global Variables|Global Variables|Parameters|Parameter|$))'
-if ($htmlContent -match $extFuncMatch) {
-    $funcMatches = [regex]::Matches($Matches[1], $funcPat)
-    foreach ($m in $funcMatches) {
-        $sig = "$($m.Groups[1].Value.Trim()) $($m.Groups[2].Value)($($m.Groups[3].Value))"
-        $sig = $sig -replace '<br\s*/?>', '' -replace '&#xa0;|&#x20;|&nbsp;', ' ' -replace '\s+', ' '
-        $interfaceData.ExternalFunctions += $sig
-        Write-Host "  External Function: $($m.Groups[2].Value)" -ForegroundColor DarkGray
-    }
-} elseif ($htmlContent -match '>External Functions</div>') {
-    Write-Host '  [Fallback] Whole-HTML search for external functions...' -ForegroundColor Yellow
-    $startPos = $htmlContent.IndexOf('>External Functions</div>')
-    $endPos   = $htmlContent.IndexOf('>Local Functions</div>', $startPos)
-    if ($endPos -lt 0) { $endPos = $htmlContent.Length }
-    $funcMatches = [regex]::Matches($htmlContent.Substring($startPos, $endPos - $startPos), $funcPat)
-    foreach ($m in $funcMatches) {
-        $sig = "$($m.Groups[1].Value.Trim()) $($m.Groups[2].Value)($($m.Groups[3].Value))"
-        $sig = $sig -replace '<br\s*/?>', '' -replace '&#xa0;|&#x20;|&nbsp;', ' ' -replace '\s+', ' '
-        $interfaceData.ExternalFunctions += $sig
-        Write-Host "  External Function: $($m.Groups[2].Value)" -ForegroundColor DarkGray
+$externalFunctions = Get-FunctionsFromHtmlSection `
+    -HtmlContent $htmlContent `
+    -SectionTitle 'External Functions' `
+    -NextSectionTitles @('Local Functions', 'External Variables', 'Static/Global Variables', 'Global Variables', 'Parameters', 'Parameter', 'Return')
+
+foreach ($sig in $externalFunctions) {
+    $interfaceData.ExternalFunctions += $sig
+    if ($sig -match '^.+?\s+([a-zA-Z_][a-zA-Z0-9_]*)\s*\(') {
+        Write-Host "  External Function: $($Matches[1])" -ForegroundColor DarkGray
     }
 }
 
 # ============================================================================
 # Local Functions
 # ============================================================================
-$localFuncMatch = '(?s)>Local Functions</div>.*?<tr[^>]*valign="top"[^>]*>(.*?)(?=<tr[^>]*>\s*<td[^>]*>\s*<div[^>]*>(?:Static/Global Variables|Global Variables|Parameters|Parameter|$))'
-if ($htmlContent -match $localFuncMatch) {
-    $funcMatches = [regex]::Matches($Matches[1], $funcPat)
-    foreach ($m in $funcMatches) {
-        $sig = "$($m.Groups[1].Value.Trim()) $($m.Groups[2].Value)($($m.Groups[3].Value))"
-        $sig = $sig -replace '<br\s*/?>', '' -replace '&#xa0;|&#x20;|&nbsp;', ' ' -replace '\s+', ' '
-        $interfaceData.LocalFunctions += $sig
-        Write-Host "  Local Function: $($m.Groups[2].Value)" -ForegroundColor DarkGray
+$localFunctions = Get-FunctionsFromHtmlSection `
+    -HtmlContent $htmlContent `
+    -SectionTitle 'Local Functions' `
+    -NextSectionTitles @('External Variables', 'Static/Global Variables', 'Global Variables', 'Parameters', 'Parameter', 'Return')
+
+foreach ($sig in $localFunctions) {
+    $interfaceData.LocalFunctions += $sig
+    if ($sig -match '^.+?\s+([a-zA-Z_][a-zA-Z0-9_]*)\s*\(') {
+        Write-Host "  Local Function: $($Matches[1])" -ForegroundColor DarkGray
     }
 }
 
