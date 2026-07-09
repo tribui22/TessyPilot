@@ -138,6 +138,29 @@ function Parse-StructMembersFromDummy {
     return $members
 }
 
+function Resolve-TestcasePlanPath {
+    param(
+        [Parameter(Mandatory=$true)][string]$BaseDir,
+        [Parameter(Mandatory=$true)][string]$Name
+    )
+
+    $canonical = Join-Path $BaseDir "json_testcase\${Name}_testcase_plan.json"
+    $legacy    = Join-Path $BaseDir "testObjectCode\${Name}_testcase_plan.json"
+
+    if (Test-Path $canonical) { return $canonical }
+    if (Test-Path $legacy) {
+        $targetDir = Split-Path -Parent $canonical
+        if (-not (Test-Path $targetDir)) {
+            New-Item -Path $targetDir -ItemType Directory -Force | Out-Null
+        }
+        Move-Item -Path $legacy -Destination $canonical -Force
+        Write-Host "[PLAN] Migrated legacy testcase plan to canonical path: $canonical" -ForegroundColor Yellow
+        return $canonical
+    }
+
+    return $canonical
+}
+
 # ============================================================================
 # Helper Function: Extract Enum Values from Function Body
 # ============================================================================
@@ -731,7 +754,7 @@ if ($isRetry) {
 }
 
 Write-Host "`n================================================================================" -ForegroundColor Cyan
-Write-Host "  STEP 4: AUTO-GENERATE TEST CASES (GPT)" -ForegroundColor Cyan
+Write-Host "  STEP 7: AUTO-GENERATE TEST CASES (GPT)" -ForegroundColor Cyan
 Write-Host "  Test Object: $TestObject" -ForegroundColor Cyan
 if ($isRetry) { Write-Host "  Mode: RETRY - Enhanced test case diversity" -ForegroundColor Magenta }
 Write-Host "================================================================================" -ForegroundColor Cyan
@@ -955,29 +978,44 @@ if ($interfaceContent -match '(?ms)GLOBAL VARIABLES:.*?-+\s*(.*?)\s*(?:PARAMETER
                     Members = @()
                     IndentLevel = $level
                 }
-                
-                # Update stack to current level
-                if ($level -lt $varStack.Count) {
-                    $varStack = $varStack[0..$level]
+
+                # Some reports include function return type lines under GLOBAL VARIABLES,
+                # e.g. "ucDrv_ClkSelfTst_sts_t [Passing: OUT]". These are not writable
+                # variables and produce invalid Tessy script entries if treated as globals.
+                $looksLikeTypeOnlyLine = (
+                    $level -eq 0 -and
+                    $passing -eq 'OUT' -and
+                    $arrayLength -eq 0 -and
+                    -not $varInfo.IsStruct -and
+                    -not $varInfo.IsUnion -and
+                    $fullDecl -notmatch '\*' -and
+                    $fullDecl -match '^[A-Za-z_][A-Za-z0-9_]*_t$'
+                )
+                if ($looksLikeTypeOnlyLine) {
+                    Write-Host "[DEBUG] SKIP - Type-only GLOBAL VARIABLES line: $fullDecl" -ForegroundColor Yellow
+                    continue
                 }
                 
-                # If this is not top-level, add as member to parent
-                if ($level -gt 0 -and $varStack.Count -gt 0) {
-                    $parent = $varStack[$level - 1]
-                    $parent.Members += $varInfo
-                } else {
-                    # Top-level variable
+                # Keep only parent levels in stack (same robust logic as external vars parser).
+                # This prevents indented member lines from leaking into top-level globals.
+                if ($level -eq 0) {
+                    $varStack = @()
+                } elseif ($level -lt $varStack.Count) {
+                    $varStack = @($varStack[0..($level - 1)])
+                }
+
+                # If this is not top-level, add as member to current parent; otherwise add as root global.
+                if ($level -eq 0) {
                     $globalVariables += $varName
                     $globalVariablesInfo += $varInfo
+                } elseif ($varStack.Count -gt 0) {
+                    $parent = $varStack[$varStack.Count - 1]
+                    $parent.Members += $varInfo
                 }
-                
-                # Push current variable to stack if it's a struct or union (may have child members)
+
+                # Push current variable to stack only when it can have children.
                 if ($varInfo.IsStruct -or $varInfo.IsUnion) {
-                    if ($level -ge $varStack.Count) {
-                        $varStack += $varInfo
-                    } else {
-                        $varStack[$level] = $varInfo
-                    }
+                    $varStack += $varInfo
                 }
             }
         }
@@ -1070,6 +1108,44 @@ $externalFunctions = @()       # non-void external functions
 $voidExternalFunctions = @()   # void external functions (also need stubs with empty body)
 $allFunctions = @{}  # Dictionary to store all function signatures (for lookup)
 
+function Ensure-ParamNames {
+    param([string]$ParamList)
+
+    if ([string]::IsNullOrWhiteSpace($ParamList)) { return "" }
+    $trimmedList = $ParamList.Trim()
+    if ($trimmedList -eq 'void') { return 'void' }
+
+    $parts = $trimmedList -split ','
+    $normalized = @()
+    $idx = 0
+
+    foreach ($part in $parts) {
+        $idx++
+        $p = ($part -replace '\s+', ' ').Trim()
+        if (-not $p) { continue }
+
+        # Already has a trailing identifier (optionally array suffix)
+        if ($p -match '\b[A-Za-z_][A-Za-z0-9_]*\s*(?:\[[^\]]*\])?$') {
+            $lastIdent = [regex]::Match($p, '([A-Za-z_][A-Za-z0-9_]*)\s*(?:\[[^\]]*\])?$').Groups[1].Value
+            $looksLikeTypeAliasOnly = $p -match '\*\s*$' -or $lastIdent -match '_t$'
+            if (-not $looksLikeTypeAliasOnly) {
+                $normalized += $p
+                continue
+            }
+        }
+
+        # Add placeholder name when signature looks type-only.
+        if ($p -match '\*$') {
+            $normalized += "$p arg$idx"
+        } else {
+            $normalized += "$p arg$idx"
+        }
+    }
+
+    if ($normalized.Count -eq 0) { return 'void' }
+    return ($normalized -join ', ')
+}
+
 if ($interfaceContent -match '(?ms)EXTERNAL FUNCTIONS:.*?-+\s*(.*?)\s*(?:LOCAL FUNCTIONS:|={3,})') {
     $funcSection = $Matches[1].Trim()
     if ($funcSection -ne "") {
@@ -1079,6 +1155,7 @@ if ($interfaceContent -match '(?ms)EXTERNAL FUNCTIONS:.*?-+\s*(.*?)\s*(?:LOCAL F
                 $extFuncReturnType = ($Matches[1] -replace '&#xa0;', ' ' -replace '<br\s*/?>', '' -replace '\s{2,}', ' ').Trim()
                 $funcName = $Matches[2].Trim()
                 $extFuncParams = ($Matches[3] -replace '&#xa0;', ' ' -replace '<br\s*/?>', '' -replace '\s{2,}', ' ').Trim()
+                $extFuncParams = Ensure-ParamNames -ParamList $extFuncParams
                 # Store in dictionary for later lookup
                 $allFunctions[$funcName] = @{ 
                     Name = $funcName
@@ -1132,6 +1209,7 @@ if ($interfaceContent -match '(?ms)LOCAL FUNCTIONS:.*?-+\s*(.*?)\s*(?:EXTERNAL V
                 $localFuncReturnType = ($Matches[1] -replace '&#xa0;', ' ' -replace '<br\s*/?>', '' -replace '\s{2,}', ' ').Trim()
                 $funcName = $Matches[2].Trim()
                 $localFuncParams = ($Matches[3] -replace '&#xa0;', ' ' -replace '<br\s*/?>', '' -replace '\s{2,}', ' ').Trim()
+                $localFuncParams = Ensure-ParamNames -ParamList $localFuncParams
                 # Store in dictionary for later lookup
                 $allFunctions[$funcName] = @{ 
                     Name = $funcName
@@ -1166,7 +1244,7 @@ Write-Host "`n[PLAN] Loading testcase plan..." -ForegroundColor Yellow
 $jsonDir = "$WorkingDir\json_files"
 
 # --- MANDATORY: testcase_plan.json must exist ---
-$planFile = Join-Path $WorkingDir "json_testcase\${TestObject}_testcase_plan.json"
+$planFile = Resolve-TestcasePlanPath -BaseDir $WorkingDir -Name $TestObject
 if (-not (Test-Path $planFile)) {
     Write-Host "[ERROR] Testcase plan not found: $planFile" -ForegroundColor Red
     Write-Host "  Run Step 6 (list_testcases) to generate the plan first." -ForegroundColor Yellow
@@ -1192,10 +1270,22 @@ foreach ($tc in $planTestCases) {
     Write-Host "  TC$($tc.TCId): $($tc.Description.Substring(0, [Math]::Min(80, $tc.Description.Length)))" -ForegroundColor DarkCyan
 }
 
+function Merge-PlanSetValues {
+    param(
+        [object[]]$DefaultValues,
+        [object[]]$TcSetValues
+    )
+
+    $merged = @()
+    if ($DefaultValues) { $merged += @($DefaultValues) }
+    if ($TcSetValues) { $merged += @($TcSetValues) }
+    return $merged
+}
+
 # --- Get $returnType from interface RETURN TYPE section (preferred) ---
 $returnType = 'void'
 $returnTypeDecl = ''
-if ($interfaceContent -match '(?ms)RETURN TYPE:\s*-+\s*(.*?)\s*={3,}') {
+if ($interfaceContent -match '(?ms)RETURN TYPE:\s*-+\s*(.*?)\s*(?:PARAMETERS:|={3,}|\z)') {
     $rt = ($Matches[1].Trim() -replace '\s*\[Passing:[^\]]+\]', '' -replace '\s+', ' ').Trim()
     if ($rt -and $rt -ne 'void' -and $rt -ne '(void)' -and $rt -ne '') {
         $returnType    = $rt
@@ -1231,6 +1321,15 @@ if (Test-Path $rawFunctionFile) {
     if (-not $functionBody -and $script:rawFunctionSource -match '(?ms)^[^{]+\{(?<body>.*)\}\s*$') {
         $functionBody = $Matches['body'].Trim()
     }
+
+    # Fallback: if RETURN TYPE section is missing/empty, derive from saved function signature.
+    if ($returnType -eq 'void' -and $script:rawFunctionSource -match '(?ms)^\s*([A-Za-z_][A-Za-z0-9_\s\*]+?)\s+' + [regex]::Escape($TestObject) + '\s*\(') {
+        $sigReturn = ($Matches[1] -replace '\s+', ' ').Trim()
+        if ($sigReturn -and $sigReturn -ne 'void') {
+            $returnType = $sigReturn
+            Write-Host "[PLAN] Return type fallback from source: $returnType" -ForegroundColor Cyan
+        }
+    }
 }
 
 # ---- Load Branch Coverage Plan (from Step 3) if available ----
@@ -1249,7 +1348,7 @@ if (Test-Path $branchPlanFile) {
 }
 
 # ---- Load Simple Test Case Plan (from Step 6) if available ----
-$simplePlanFile = Join-Path $WorkingDir "json_testcase\${TestObject}_testcase_plan.json"
+$simplePlanFile = Resolve-TestcasePlanPath -BaseDir $WorkingDir -Name $TestObject
 # Also check path stored in analysis JSON
 if (-not (Test-Path $simplePlanFile) -and $analysis.SimpleTestCasePlanFile) {
     $simplePlanFile = $analysis.SimpleTestCasePlanFile
@@ -2041,6 +2140,35 @@ if ($nestedIntSwitchParams.Count -gt 0) {
 $outputFile = "$scriptDir\${TestObject}_testcase.script"
 $utf8NoBom  = New-Object System.Text.UTF8Encoding $false
 
+function Normalize-PointerTargetsInScript {
+    param([string]$ScriptPath)
+
+    if (-not (Test-Path $ScriptPath)) { return }
+
+    $content = Get-Content $ScriptPath -Raw
+    if (-not $content) { return }
+
+    # Normalize legacy pointer-target member paths while preserving import-safe
+    # pointer binding syntax for this Tessy setup (ptr = target_ptr[0]).
+    $content = [regex]::Replace(
+        $content,
+        '(?m)^(\s*)([A-Za-z_][A-Za-z0-9_]*)\s*=\s*target_([A-Za-z_][A-Za-z0-9_]*)\s*$',
+        '$1$2 = target_$3[0]'
+    )
+    $content = [regex]::Replace(
+        $content,
+        '(?m)^(\s*)([A-Za-z_][A-Za-z0-9_]*)\s*=\s*&target_([A-Za-z_][A-Za-z0-9_]*)\[0\]\s*$',
+        '$1$2 = target_$3[0]'
+    )
+    $content = [regex]::Replace(
+        $content,
+        '(?m)(\btarget_[A-Za-z_][A-Za-z0-9_]*)\.(?!\[0\])',
+        '$1[0].'
+    )
+
+    [System.IO.File]::WriteAllText($ScriptPath, $content, $utf8NoBom)
+}
+
 # Re-evaluate file existence here — $isRetry may have drifted during earlier processing.
 # When C0 > 0% / C1 > 0% and the file exists: ALWAYS use APPEND mode (keep existing TCs, add new ones).
 # When the file does not exist: CREATE mode (generate all TCs from plan).
@@ -2107,7 +2235,7 @@ if ($scriptFileExists) {
                 $stepBlock = Build-TCInputsOutputs `
                     -TcNum              $tc.TCId `
                     -StepNum            1 `
-                    -SetValues          @($tc.SetValues) `
+                    -SetValues          (Merge-PlanSetValues -DefaultValues $planDefaultValues -TcSetValues @($tc.SetValues)) `
                     -StubFunctionNames  @($tc.StubFunctions) `
                     -TCDescription      $tc.Description
                 # Fix teststep prefix: Build-TCInputsOutputs always outputs "$teststep 1.1 {"
@@ -2169,7 +2297,7 @@ if ($scriptFileExists) {
             $stepBlock = Build-TCInputsOutputs `
                 -TcNum              $tc.TCId `
                 -StepNum            1 `
-                -SetValues          @($tc.SetValues) `
+                -SetValues          (Merge-PlanSetValues -DefaultValues $planDefaultValues -TcSetValues @($tc.SetValues)) `
                 -StubFunctionNames  @($tc.StubFunctions) `
                 -TCDescription      $tc.Description
             # Fix teststep prefix from "1.1" to "N.1"
@@ -2193,6 +2321,10 @@ if ($scriptFileExists) {
     Write-Host "  File: $outputFile" -ForegroundColor White
     Write-Host "  Test cases generated: $($planTestCases.Count)" -ForegroundColor White
 }
+
+# Final hardening pass: normalize pointer-backed target assignments in the
+# generated script so pointer inputs are never imported as unresolved NULL.
+Normalize-PointerTargetsInScript -ScriptPath $outputFile
 Write-Host ""
 
 Write-Host "================================================================================" -ForegroundColor Cyan

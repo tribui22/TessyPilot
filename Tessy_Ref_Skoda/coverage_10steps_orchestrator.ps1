@@ -47,6 +47,29 @@ $ReportDir = if ((Split-Path $ScriptRoot -Leaf) -ieq "tessy") {
     Join-Path $ScriptRoot "report"
 }
 
+function Resolve-TestcasePlanPath {
+    param(
+        [Parameter(Mandatory=$true)][string]$BaseDir,
+        [Parameter(Mandatory=$true)][string]$Name
+    )
+
+    $canonical = Join-Path $BaseDir "json_testcase\${Name}_testcase_plan.json"
+    $legacy    = Join-Path $BaseDir "testObjectCode\${Name}_testcase_plan.json"
+
+    if (Test-Path $canonical) { return $canonical }
+    if (Test-Path $legacy) {
+        $targetDir = Split-Path -Parent $canonical
+        if (-not (Test-Path $targetDir)) {
+            New-Item -Path $targetDir -ItemType Directory -Force | Out-Null
+        }
+        Move-Item -Path $legacy -Destination $canonical -Force
+        Write-Host "[ORCHESTRATOR] Migrated legacy testcase plan to canonical path: $canonical" -ForegroundColor Yellow
+        return $canonical
+    }
+
+    return $canonical
+}
+
 # Preserve the caller's working directory so it is restored after this script exits
 Push-Location $PWD
 
@@ -147,7 +170,7 @@ Write-Host "[ORCHESTRATOR] STEP 3 COMPLETE" -ForegroundColor Green
 #   (b) writes testObjectCode\<TO>_step6.prompt.md and exits 0
 # In case (b) we must pause here until the user runs Copilot Agent.
 # ============================================================================
-$planFile   = "$WorkDir\testObjectCode\${TestObject}_testcase_plan.json"
+$planFile   = Resolve-TestcasePlanPath -BaseDir $WorkDir -Name $TestObject
 $promptFile = "$WorkDir\testObjectCode\${TestObject}_step6.prompt.md"
 
 if (-not (Test-Path $planFile)) {
@@ -193,13 +216,16 @@ while ($iteration -le $MaxIterations) {
 
         Write-Host "`n[ORCHESTRATOR] RETRY: Re-running Step 6 (prompt generation)" -ForegroundColor Yellow
         # Delete old plan so Step 6 regenerates the prompt
-        $retryPlan = "$WorkDir\testObjectCode\${TestObject}_testcase_plan.json"
-        if (Test-Path $retryPlan) { Remove-Item $retryPlan -Force }
+        $retryPlanCanonical = Join-Path $WorkDir "json_testcase\${TestObject}_testcase_plan.json"
+        $retryPlanLegacy    = Join-Path $WorkDir "testObjectCode\${TestObject}_testcase_plan.json"
+        if (Test-Path $retryPlanCanonical) { Remove-Item $retryPlanCanonical -Force }
+        if (Test-Path $retryPlanLegacy) { Remove-Item $retryPlanLegacy -Force }
         powershell -ExecutionPolicy Bypass -File "$StepsDir\step6_list_testcases.ps1" `
             -TestObject $TestObject -WorkingDir $WorkDir
         if ($LASTEXITCODE -ne 0) { Write-Host "[WARN] Step 6 reported an error on retry." -ForegroundColor Yellow }
 
         # Gate: if Copilot Agent hasn't written the plan yet, exit so user can re-run
+        $retryPlan = Resolve-TestcasePlanPath -BaseDir $WorkDir -Name $TestObject
         if (-not (Test-Path $retryPlan)) {
             $retryPrompt = "$WorkDir\testObjectCode\${TestObject}_step6.prompt.md"
             Write-Host "`n  testcase_plan.json missing. Use the Copilot Agent prompt:" -ForegroundColor Yellow

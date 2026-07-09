@@ -262,6 +262,11 @@ if (($c0Coverage -le 0 -and $c1Coverage -le 0) -and (Test-Path $xmlReport)) {
     }
 }
 
+# Normalize totals when HTML variants omit Total but provide pass/fail counts.
+if ($totalCount -le 0 -and ($passCount -gt 0 -or $failCount -gt 0)) {
+    $totalCount = $passCount + $failCount
+}
+
 Write-Host "`nCoverage: C0=$c0Coverage% C1=$c1Coverage%" -ForegroundColor Yellow
 Write-Host "Tests: Total=$totalCount Passed=$passCount Failed=$failCount" -ForegroundColor Yellow
 
@@ -442,7 +447,11 @@ if ($allVarDetails.Count -gt 0) {
     [System.IO.File]::WriteAllText($correctionFile, $csvContent, $utf8NoBom)
     Write-Host "[OK] Saved $($failureDetails.Count) failure rows" -ForegroundColor Green
 } else {
-    Write-Host "`n[INFO] No corrections needed - all tests passed" -ForegroundColor Green
+    if ($failCount -eq 0) {
+        Write-Host "`n[INFO] No corrections needed - all tests passed" -ForegroundColor Green
+    } else {
+        Write-Host "`n[INFO] No variable-comparison rows parsed; tests still report failures ($failCount)." -ForegroundColor Yellow
+    }
 }
 
 if ((Test-Path $htmlReport) -and -not ($c0Coverage -ge 100 -and $c1Coverage -ge 100)) {

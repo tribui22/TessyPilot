@@ -116,12 +116,20 @@ ${condContent}
 3. Apply the Array Index Rule and Inheritance Rule everywhere.
 4. Keep the JSON compact. Do **not** include `FunctionBodyAfterPassing` or any copied source text.
 5. For `bool`, `boolean_t`, or enum returns/values, use symbolic labels like `TRUE`, `FALSE`, or the enum member name — not `1` / `0` when a symbolic label exists.
+6. For pointer-to-struct IN/INOUT inputs, explicitly initialize every interface-listed member. Put common values in `DefaultValues`, and keep TC-specific deltas in `SetValues`.
+7. For pointer parameters, use pointer-object entries in `SetValues` with `PointerName`, `Allocate`, `DynamicObject`, and recursive `Members`. Do not use flat pointer-member paths like `config_ptr->field`.
 6. Write the result as valid JSON to `${relJsonPath}` with this exact top-level structure:
 
 ``````json
 {
   "FunctionSignature": "<signature>",
   "TotalTestCases": <N>,
+    "DefaultValues": [
+        {
+            "Path": "<shared_var_or_member_path>",
+            "Value": "<value>"
+        }
+    ],
   "TestCases": [
     {
       "TCId": 1,
@@ -131,6 +139,26 @@ ${condContent}
                 {
                     "Path": "<var_or_path>",
                     "Value": "<value>"
+                },
+                {
+                    "PointerName": "<pointer_var_name>",
+                    "Allocate": true,
+                    "DynamicObject": "target_<pointer_var_name>",
+                    "Members": [
+                        {
+                            "Name": "<member_name>",
+                            "Value": "<value>"
+                        },
+                        {
+                            "Name": "<nested_struct_name>",
+                            "Members": [
+                                {
+                                    "Name": "<nested_member_name>",
+                                    "Value": "<value>"
+                                }
+                            ]
+                        }
+                    ]
                 }
             ],
             "StubFunctions": [

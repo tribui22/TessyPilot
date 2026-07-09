@@ -10,6 +10,8 @@ Walk the function body **once, top-to-bottom**. Emit TCs as you go. Write JSON i
 
 > **Compact JSON rule: Output only the data Step 7 needs. Do NOT copy the full function body into the JSON.**
 
+> **Pointer safety rule (critical): For any pointer-to-struct IN/INOUT input (for example `config_ptr`), use a pointer-object entry that includes pointer name, allocation flag, dynamic object name, and recursive members. Do not emit flat `config_ptr->member` SetValues entries.**
+
 ---
 
 ## Rules (always apply)
@@ -22,6 +24,11 @@ Walk the function body **once, top-to-bottom**. Emit TCs as you go. Write JSON i
 | **Inherit** | Each TC copies ALL SetValues + StubFunctions from its parent, then only changes what the new condition requires. |
 | **New scope** | Each `case LABEL:` resets to: `<index_param> = 0` + `<state>[0] = LABEL` + all stubs = 0. |
 | **1 TC = 1 condition** | One condition TRUE or FALSE per TC. Never combine unrelated decisions. |
+
+DefaultValues policy (required):
+- Add `DefaultValues` at top-level for values shared by most TCs.
+- For pointer-backed structs, include all common members in `DefaultValues` so every TC starts from a fully initialized object state.
+- Keep `SetValues` only for per-TC differences from `DefaultValues`.
 
 ---
 
@@ -50,7 +57,7 @@ Walk the function body **once, top-to-bottom**. Emit TCs as you go. Write JSON i
 | `int8_t` / `int16_t` / `int32_t` / `int64_t` | `1` | `0` |
 | `bool` / `boolean_t` | `TRUE` | `FALSE` |
 | `float` / `double` | `1.0` | `0.0` |
-| pointer type | `1` (non-NULL) | `0` (NULL) |
+| pointer type | pointer object with `Allocate=true` and initialized members | pointer object with `Allocate=false` |
 | `enum` | use the enum label directly (e.g. `STATE_ACTIVE`) | use the label for the "off/idle" value |
 | bit-field inside union | → use stub return (see section below) | → stub returns `0` |
 | array index param | always `0` | — |
@@ -103,6 +110,12 @@ For local unions: the stub's return byte fills `<byte_field>` and sets all bit f
 {
   "FunctionSignature": "<return_type> <FunctionName>(<params>)",
   "TotalTestCases": <N>,
+  "DefaultValues": [
+    {
+      "Path": "<shared_var_or_member_path>",
+      "Value": "<value>"
+    }
+  ],
   "TestCases": [
     {
       "TCId": 1,
@@ -112,6 +125,26 @@ For local unions: the stub's return byte fills `<byte_field>` and sets all bit f
         {
           "Path": "<param_or_variable_path>",
           "Value": "<value>"
+        },
+        {
+          "PointerName": "<pointer_var_name>",
+          "Allocate": true,
+          "DynamicObject": "target_<pointer_var_name>",
+          "Members": [
+            {
+              "Name": "<member_name>",
+              "Value": "<value>"
+            },
+            {
+              "Name": "<nested_struct_name>",
+              "Members": [
+                {
+                  "Name": "<nested_member_name>",
+                  "Value": "<value>"
+                }
+              ]
+            }
+          ]
         }
       ],
       "StubFunctions": [
@@ -138,5 +171,14 @@ For local unions: the stub's return byte fills `<byte_field>` and sets all bit f
 ```
 
 Use the object form above for `SetValues` and `StubFunctions`. It is faster and less error-prone for Step 7 to consume. Legacy string entries are tolerated, but Step 6 should not generate them.
+
+Pointer object rules (required):
+- `PointerName`: exact pointer variable name from interface (for example `config_ptr`).
+- `Allocate`: `true` to create Pointed Object / Dynamics, `false` to keep pointer deallocated.
+- `DynamicObject`: target object name to bind in TESSY (for example `target_config_ptr`).
+- `Members`: recursive list of fields under Dynamics. Nested structs/unions use child `Members` arrays.
+- Do not use flat pointer-member paths such as `config_ptr->field` or `config_ptr.field` in `SetValues` when pointer-object form is available.
+
+`DefaultValues` is required whenever at least one value is shared by most TCs.
 
 Set `TotalTestCases` to the actual count of TCs in the array after writing them all.

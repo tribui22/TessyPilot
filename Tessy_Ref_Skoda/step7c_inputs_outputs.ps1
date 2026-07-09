@@ -22,10 +22,76 @@
 # Much faster than scanning all source files.
 # ---------------------------------------------------------------------------
 $script:condFileEnumCache = @{}
+$script:condFileStructCache = @{}
 # Per-TC indexed overrides for pointer variables; cleared at start of each Parse-SetValuesOverrides call
 $script:_pointerIndexedOverrides = @{}
 # Per-TC pointer member overrides, e.g. config_ptr->field or config_ptr.field
 $script:_pointerMemberOverrides = @{}
+# Per-TC pointer object overrides from JSON schema (PointerName/Allocate/DynamicObject/Members)
+$script:_pointerObjectOverrides = @{}
+
+function ConvertTo-BoolFlag {
+    param(
+        [Parameter(Mandatory=$false)]$Value,
+        [bool]$Default = $true
+    )
+
+    if ($null -eq $Value) { return $Default }
+    if ($Value -is [bool]) { return $Value }
+
+    $s = [string]$Value
+    if ([string]::IsNullOrWhiteSpace($s)) { return $Default }
+    $v = $s.Trim().ToLowerInvariant()
+
+    if ($v -in @('true','1','yes','y','on')) { return $true }
+    if ($v -in @('false','0','no','n','off')) { return $false }
+    return $Default
+}
+
+function Flatten-PointerMembers {
+    param(
+        [object[]]$Members,
+        [string]$ParentPath = ''
+    )
+
+    $flat = @{}
+    foreach ($m in @($Members)) {
+        if ($null -eq $m) { continue }
+
+        $name = $null
+        if ($m -is [string]) {
+            continue
+        }
+        if ($m.PSObject.Properties['Name']) { $name = [string]$m.Name }
+        elseif ($m.PSObject.Properties['N']) { $name = [string]$m.N }
+        elseif ($m.PSObject.Properties['Path']) { $name = [string]$m.Path }
+        if ([string]::IsNullOrWhiteSpace($name)) { continue }
+
+        $currPath = if ([string]::IsNullOrWhiteSpace($ParentPath)) { $name.Trim() } else { "$ParentPath.$($name.Trim())" }
+
+        $hasValue = $false
+        $val = $null
+        if ($m.PSObject.Properties['V']) { $val = [string]$m.V; $hasValue = $true }
+        elseif ($m.PSObject.Properties['Value']) { $val = [string]$m.Value; $hasValue = $true }
+
+        if ($hasValue) {
+            $flat[$currPath] = $val.Trim()
+        }
+
+        $childMembers = @()
+        if ($m.PSObject.Properties['Members']) { $childMembers = @($m.Members) }
+        elseif ($m.PSObject.Properties['MemberList']) { $childMembers = @($m.MemberList) }
+
+        if ($childMembers.Count -gt 0) {
+            $childFlat = Flatten-PointerMembers -Members $childMembers -ParentPath $currPath
+            foreach ($k in $childFlat.Keys) {
+                $flat[$k] = $childFlat[$k]
+            }
+        }
+    }
+
+    return $flat
+}
 
 function Get-EnumMembersFromConditionsFile {
     param([string]$TypeName)
@@ -66,6 +132,269 @@ function Get-EnumMembersFromConditionsFile {
 
     $script:condFileEnumCache[$TypeName] = $members
     return $members
+}
+
+function Get-StructMembersFromConditionsFile {
+    param([string]$TypeName)
+
+    if ($script:condFileStructCache.ContainsKey($TypeName)) {
+        return $script:condFileStructCache[$TypeName]
+    }
+
+    $members = @()
+    $src = if ($rawConditionsContent) { $rawConditionsContent } else { '' }
+    if (-not $src) {
+        $script:condFileStructCache[$TypeName] = $members
+        return $members
+    }
+
+    $esc = [regex]::Escape($TypeName)
+    $structBody = $null
+
+    # typedef struct [optional_tag] { ... } TypeName ;
+    if ($src -match "(?ms)typedef\s+struct\b[^\{]*\{([^}]+)\}\s*$esc\s*;") {
+        $structBody = $Matches[1]
+    }
+    # struct TypeName { ... }
+    elseif ($src -match "(?ms)\bstruct\s+$esc\s*\{([^}]+)\}") {
+        $structBody = $Matches[1]
+    }
+
+    if ($structBody) {
+        foreach ($line in ($structBody -split '[\r\n]+')) {
+            $t = ($line -replace '/\*.*?\*/', '' -replace '//.*$', '').Trim().TrimEnd(';').Trim()
+            if ($t -eq '') { continue }
+            if ($t -match '^(.+?)\s+([A-Za-z_][A-Za-z0-9_]*)\s*(\[[^\]]*\])?$') {
+                $mType = $Matches[1].Trim()
+                $mName = $Matches[2].Trim()
+                $arrDecl = if ($Matches[3]) { [string]$Matches[3] } else { '' }
+                $arrLen = 0
+                if ($arrDecl -match '\[(\d+)\]') { $arrLen = [int]$Matches[1] }
+                if ($mName -and ($members | Where-Object { $_.Name -eq $mName }).Count -eq 0) {
+                    $members += @{ Name = $mName; FullDeclaration = $mType; Type = $mType; Passing = 'IN'; ArrayLength = $arrLen }
+                }
+            }
+        }
+    }
+
+    $script:condFileStructCache[$TypeName] = $members
+    return $members
+}
+
+function Get-PointerBaseTypeName {
+    param([string]$Declaration)
+
+    if ([string]::IsNullOrWhiteSpace($Declaration)) { return '' }
+    $d = ($Declaration -replace '\s+', ' ').Trim()
+    $d = ($d -replace '\bconst\b|\bvolatile\b|\bstatic\b|\bextern\b', '').Trim()
+
+    # Case 1: "Type * varName" / "Type ** varName"
+    if ($d -match '^(.+?)\s*(\*+)\s*[A-Za-z_][A-Za-z0-9_]*$') {
+        return $Matches[1].Trim()
+    }
+    # Case 2: "Type *" / "Type **"
+    if ($d -match '^(.+?)\s*(\*+)$') {
+        return $Matches[1].Trim()
+    }
+    return ''
+}
+
+function Get-PointerDepthFromDeclaration {
+    param([string]$Declaration)
+
+    if ([string]::IsNullOrWhiteSpace($Declaration)) { return 0 }
+    $d = ($Declaration -replace '\s+', ' ').Trim()
+    $d = ($d -replace '\bconst\b|\bvolatile\b|\bstatic\b|\bextern\b', '').Trim()
+
+    if ($d -match '^.+?\s*(\*+)\s*[A-Za-z_][A-Za-z0-9_]*$') {
+        return $Matches[1].Length
+    }
+    if ($d -match '^.+?\s*(\*+)$') {
+        return $Matches[1].Length
+    }
+    return 0
+}
+
+function Get-TypeBaseName {
+    param([string]$Declaration)
+
+    if ([string]::IsNullOrWhiteSpace($Declaration)) { return '' }
+    $d = ($Declaration -replace '\bconst\b|\bvolatile\b|\bstatic\b|\bextern\b|\bunsigned\b|\bsigned\b', '').Trim()
+    $d = ($d -replace '\*+', '' -replace '\[.*$', '' -replace '\s+', ' ').Trim()
+    return $d
+}
+
+function Expand-InterfaceMembers {
+    param(
+        [array]$Members,
+        [string]$Prefix = ''
+    )
+
+    $flat = @()
+    foreach ($m in @($Members)) {
+        if ($null -eq $m) { continue }
+        if ($m.Passing -match 'IRRELEVANT') { continue }
+        if (-not $m.Name) { continue }
+
+        $seg = if ($m.ArrayLength -and [int]$m.ArrayLength -gt 0) { "$($m.Name)[0]" } else { "$($m.Name)" }
+        $path = if ([string]::IsNullOrWhiteSpace($Prefix)) { $seg } else { "$Prefix.$seg" }
+
+        if ($m.Members -and @($m.Members).Count -gt 0) {
+            $flat += Expand-InterfaceMembers -Members $m.Members -Prefix $path
+        } else {
+            $flat += @{ Name = $path; FullDeclaration = if ($m.FullDeclaration) { $m.FullDeclaration } else { $m.Type }; Type = $m.Type; Passing = if ($m.Passing) { $m.Passing } else { 'IN' } }
+        }
+    }
+    return $flat
+}
+
+function Expand-StructMembersRecursive {
+    param(
+        [string]$TypeName,
+        [string]$Prefix = '',
+        [int]$Depth = 0,
+        [hashtable]$SeenTypes
+    )
+
+    if (-not $SeenTypes) { $SeenTypes = @{} }
+    if ([string]::IsNullOrWhiteSpace($TypeName)) { return @() }
+    if ($Depth -ge 6) { return @() }
+
+    $baseType = Get-TypeBaseName -Declaration $TypeName
+    if ([string]::IsNullOrWhiteSpace($baseType)) { return @() }
+    if ($SeenTypes.ContainsKey($baseType)) { return @() }
+
+    $members = @(Get-StructMembersFromConditionsFile -TypeName $baseType)
+    if ($members.Count -eq 0) { return @() }
+
+    $SeenTypes[$baseType] = $true
+    $flat = @()
+    foreach ($m in $members) {
+        if (-not $m.Name) { continue }
+        $seg = if ($m.ArrayLength -and [int]$m.ArrayLength -gt 0) { "$($m.Name)[0]" } else { "$($m.Name)" }
+        $path = if ([string]::IsNullOrWhiteSpace($Prefix)) { $seg } else { "$Prefix.$seg" }
+
+        $mDecl = if ($m.FullDeclaration) { [string]$m.FullDeclaration } else { [string]$m.Type }
+        $mPtrDepth = Get-PointerDepthFromDeclaration -Declaration $mDecl
+        $nestedType = Get-TypeBaseName -Declaration $mDecl
+        $nestedStructMembers = @()
+        if ($mPtrDepth -eq 0) {
+            $nestedStructMembers = @(Get-StructMembersFromConditionsFile -TypeName $nestedType)
+        }
+
+        if ($mPtrDepth -eq 0 -and $nestedStructMembers.Count -gt 0) {
+            $flat += Expand-StructMembersRecursive -TypeName $nestedType -Prefix $path -Depth ($Depth + 1) -SeenTypes $SeenTypes
+        } else {
+            $flat += @{ Name = $path; FullDeclaration = $mDecl; Type = $mDecl; Passing = 'IN' }
+        }
+    }
+
+    $SeenTypes.Remove($baseType) | Out-Null
+    return $flat
+}
+
+function Get-FullPointerMemberList {
+    param(
+        [string]$PointerDeclaration,
+        [array]$InterfaceMembers
+    )
+
+    $merged = @()
+    $seen = @{}
+
+    $ifaceFlattened = @(Expand-InterfaceMembers -Members $InterfaceMembers)
+    foreach ($m in $ifaceFlattened) {
+        if ($null -eq $m -or -not $m.Name) { continue }
+        if (-not $seen.ContainsKey($m.Name)) {
+            $merged += $m
+            $seen[$m.Name] = $true
+        }
+    }
+
+    $typeName = Get-PointerBaseTypeName -Declaration $PointerDeclaration
+    if ($typeName) {
+        $extra = Expand-StructMembersRecursive -TypeName $typeName -Prefix '' -Depth 0 -SeenTypes @{}
+        foreach ($m in @($extra)) {
+            if (-not $m.Name) { continue }
+            if (-not $seen.ContainsKey($m.Name)) {
+                $merged += $m
+                $seen[$m.Name] = $true
+            }
+        }
+    }
+
+    return $merged
+}
+
+function Emit-PointerTargetInputLines {
+    param(
+        [string]$VariableName,
+        [string]$TargetName,
+        [array]$InitMembers,
+        [hashtable]$MemberOverrides,
+        [hashtable]$OverrideMap,
+        [string]$FallbackValue,
+        [scriptblock]$DefaultValueResolver,
+        [bool]$AllocatePointedObject = $true,
+        [int]$PointerDepth = 1
+    )
+
+    $lines = @()
+
+    if (-not $AllocatePointedObject) {
+        # Explicit de-allocation request from testcase plan schema.
+        $lines += "`t`t`t`t$VariableName = 0"
+        return ($lines -join "`n") + "`n"
+    }
+
+    # Bind pointer to a concrete pointed object first. This mirrors Tessy's
+    # manual "Create Pointed Object" workflow and materializes Dynamics.
+    $depth = if ($PointerDepth -gt 0) { $PointerDepth } else { 1 }
+    $lines += "`t`t`t`t$VariableName = $TargetName`[0`]"
+
+    $finalTargetName = $TargetName
+    if ($depth -gt 1) {
+        $carrier = $TargetName
+        for ($lvl = 2; $lvl -le $depth; $lvl++) {
+            $nextTarget = if ($lvl -eq $depth) { "${TargetName}_leaf" } else { "${TargetName}_l$($lvl - 1)" }
+            $lines += "`t`t`t`t$carrier`[0`] = $nextTarget`[0`]"
+            $carrier = $nextTarget
+        }
+        $finalTargetName = $carrier
+    }
+
+    $emitMemberAssignments = $true
+
+    $appliedMembers = @{}
+    if ($emitMemberAssignments -and @($InitMembers).Count -gt 0) {
+        foreach ($mem in @($InitMembers)) {
+            if ($null -eq $mem) { continue }
+            if ($mem.Passing -match 'IRRELEVANT') { continue }
+            $mName = $mem.Name
+            if (-not $mName) { continue }
+
+            $mVal = if ($DefaultValueResolver) { & $DefaultValueResolver $mem } else { '0' }
+            if ($MemberOverrides -and $MemberOverrides.ContainsKey($mName)) {
+                $mVal = $MemberOverrides[$mName]
+            }
+            $lines += "`t`t`t`t$finalTargetName`[0`].$mName = $mVal"
+            $appliedMembers[$mName] = $true
+        }
+    }
+
+    # Apply explicit overrides (including nested paths) after defaults so testcase values win.
+    if ($emitMemberAssignments -and $MemberOverrides -and $MemberOverrides.Count -gt 0) {
+        foreach ($entry in ($MemberOverrides.GetEnumerator() | Sort-Object Name)) {
+            if ($appliedMembers.ContainsKey($entry.Name)) { continue }
+            $lines += "`t`t`t`t$finalTargetName`[0`].$($entry.Name) = $($entry.Value)"
+        }
+    }
+
+    if ($emitMemberAssignments -and @($InitMembers).Count -eq 0 -and (-not $MemberOverrides -or $MemberOverrides.Count -eq 0)) {
+        $lines += "`t`t`t`t$finalTargetName`[0`] = $FallbackValue"
+    }
+
+    return ($lines -join "`n") + "`n"
 }
 
 # ---------------------------------------------------------------------------
@@ -129,6 +458,7 @@ function Parse-SetValuesOverrides {
     # Reset per-TC pointer overrides
     $script:_pointerIndexedOverrides = @{}
     $script:_pointerMemberOverrides = @{}
+    $script:_pointerObjectOverrides = @{}
 
     $overrides = [ordered]@{}
     foreach ($raw in $SetValues) {
@@ -138,6 +468,75 @@ function Parse-SetValuesOverrides {
         if ($raw -is [string]) {
             $sv = $raw
         } else {
+            # New pointer object schema (preferred):
+            # {
+            #   "PointerName": "config_ptr",
+            #   "Allocate": true,
+            #   "DynamicObject": "target_config_ptr",
+            #   "Members": [ {"Name":"field","Value":"1"}, {"Name":"nested","Members":[...]} ]
+            # }
+            $pointerName = $null
+            if ($raw.PSObject.Properties['PointerName']) { $pointerName = [string]$raw.PointerName }
+            elseif ($raw.PSObject.Properties['Pointer']) { $pointerName = [string]$raw.Pointer }
+
+            $looksLikePointerObject = ($pointerName -and (
+                $raw.PSObject.Properties['DynamicObject'] -or
+                $raw.PSObject.Properties['Allocate'] -or
+                $raw.PSObject.Properties['Allocated'] -or
+                $raw.PSObject.Properties['Members'] -or
+                $raw.PSObject.Properties['MemberList']))
+
+            if ($looksLikePointerObject) {
+                $allocVal = $null
+                if ($raw.PSObject.Properties['Allocate']) { $allocVal = $raw.Allocate }
+                elseif ($raw.PSObject.Properties['Allocated']) { $allocVal = $raw.Allocated }
+
+                $allocate = ConvertTo-BoolFlag -Value $allocVal -Default $true
+
+                $dynamicObj = $null
+                if ($raw.PSObject.Properties['DynamicObject']) { $dynamicObj = [string]$raw.DynamicObject }
+                elseif ($raw.PSObject.Properties['PointedObject']) { $dynamicObj = [string]$raw.PointedObject }
+                elseif ($raw.PSObject.Properties['Target']) { $dynamicObj = [string]$raw.Target }
+                if ([string]::IsNullOrWhiteSpace($dynamicObj)) { $dynamicObj = "target_$pointerName" }
+
+                $membersRaw = @()
+                if ($raw.PSObject.Properties['Members']) { $membersRaw = @($raw.Members) }
+                elseif ($raw.PSObject.Properties['MemberList']) { $membersRaw = @($raw.MemberList) }
+
+                $membersMap = Flatten-PointerMembers -Members $membersRaw
+                $existingPtrSpec = if ($script:_pointerObjectOverrides.ContainsKey($pointerName)) { $script:_pointerObjectOverrides[$pointerName] } else { $null }
+                $mergedMembers = @{}
+                if ($existingPtrSpec -and $existingPtrSpec.Members) {
+                    foreach ($k in $existingPtrSpec.Members.Keys) { $mergedMembers[$k] = $existingPtrSpec.Members[$k] }
+                }
+                foreach ($k in $membersMap.Keys) { $mergedMembers[$k] = $membersMap[$k] }
+
+                $resolvedAllocate = if ($null -ne $existingPtrSpec -and -not $allocate) { $false } else { $allocate }
+                $resolvedDynamicObject = if (-not [string]::IsNullOrWhiteSpace($dynamicObj)) { $dynamicObj } elseif ($existingPtrSpec -and $existingPtrSpec.DynamicObject) { [string]$existingPtrSpec.DynamicObject } else { "target_$pointerName" }
+
+                $script:_pointerObjectOverrides[$pointerName] = @{
+                    PointerName = $pointerName
+                    Allocate = $resolvedAllocate
+                    DynamicObject = $resolvedDynamicObject
+                    Members = $mergedMembers
+                }
+
+                if (-not $allocate) {
+                    # Keep compatibility with legacy scalar path handling.
+                    $overrides[$pointerName] = '0'
+                }
+
+                if (-not $script:_pointerMemberOverrides.ContainsKey($pointerName)) {
+                    $script:_pointerMemberOverrides[$pointerName] = @{}
+                }
+                foreach ($k in $membersMap.Keys) {
+                    $script:_pointerMemberOverrides[$pointerName][$k] = $membersMap[$k]
+                }
+
+                Write-Host "  [SET pointer-object $pointerName allocate=$resolvedAllocate dynamic=$resolvedDynamicObject members=$($mergedMembers.Count)]" -ForegroundColor DarkGreen
+                continue
+            }
+
             $path = $null
             $value = $null
 
@@ -351,7 +750,7 @@ function Build-TCInputsOutputs {
             $shortName = $gv.Name
             $defVal   = Get-VarDefaultValue -VarInfo $gv -OverrideMap $overrides
 
-            if ($gv.IsUnion -and $gv.Members.Count -gt 0) {
+            if ($gv.IsUnion -and $gv.Members.Count -gt 0 -and $gv.FullDeclaration -notmatch '\*') {
                 # Union: use first non-IRRELEVANT member
                 $firstMember = $gv.Members | Where-Object { $_.Passing -notmatch 'IRRELEVANT' } | Select-Object -First 1
                 if (-not $firstMember) { $firstMember = $gv.Members[0] }
@@ -374,7 +773,7 @@ function Build-TCInputsOutputs {
                     $out += "`t`t`t`t$varName$idxSuffix = $memberName`n"
                     $out += "`t`t`t`t$varName$idxSuffix.$memberName = $memberVal`n"
                 }
-            } elseif ($gv.IsStruct -and $gv.Members.Count -gt 0) {
+            } elseif ($gv.IsStruct -and $gv.Members.Count -gt 0 -and $gv.FullDeclaration -notmatch '\*') {
                 # Struct: block initializer — include only IN/INOUT members in $inputs
                 $inMembers = @($gv.Members | Where-Object { $_.Passing -match 'IN|INOUT' })
                 if ($inMembers.Count -gt 0) {
@@ -398,16 +797,26 @@ function Build-TCInputsOutputs {
                 $out += "`t`t`t`t&$targetName`[0`] = $defVal`n"
             } elseif ($gv.FullDeclaration -match '\*') {
                 # Pointer scalar: preserve pointer-member overrides when provided.
-                $targetName = "target_$shortName"
-                $out += "`t`t`t`t$varName = $targetName`n"
+                $ptrSpec = if ($script:_pointerObjectOverrides.ContainsKey($shortName)) { $script:_pointerObjectOverrides[$shortName] } else { $null }
+                $targetName = if ($ptrSpec -and $ptrSpec.DynamicObject) { [string]$ptrSpec.DynamicObject } else { "target_$shortName" }
+                $allocatePtr = if ($ptrSpec) { [bool]$ptrSpec.Allocate } else { $true }
+                $ptrDepth = Get-PointerDepthFromDeclaration -Declaration $gv.FullDeclaration
                 $memberOverrides = if ($script:_pointerMemberOverrides.ContainsKey($shortName)) { $script:_pointerMemberOverrides[$shortName] } else { $null }
-                if ($memberOverrides -and $memberOverrides.Count -gt 0) {
-                    foreach ($entry in $memberOverrides.GetEnumerator() | Sort-Object Name) {
-                        $out += "`t`t`t`t$targetName.$($entry.Name) = $($entry.Value)`n"
-                    }
-                } else {
-                    $out += "`t`t`t`t&$targetName`[0`] = $defVal`n"
+                if ($ptrSpec -and $ptrSpec.Members) {
+                    if (-not $memberOverrides) { $memberOverrides = @{} }
+                    foreach ($k in $ptrSpec.Members.Keys) { $memberOverrides[$k] = $ptrSpec.Members[$k] }
                 }
+                $initMembers = @(Get-FullPointerMemberList -PointerDeclaration $gv.FullDeclaration -InterfaceMembers $gv.Members)
+                $out += Emit-PointerTargetInputLines `
+                    -VariableName $varName `
+                    -TargetName $targetName `
+                    -InitMembers $initMembers `
+                    -MemberOverrides $memberOverrides `
+                    -OverrideMap $overrides `
+                    -FallbackValue $defVal `
+                    -DefaultValueResolver { param($m) Get-VarDefaultValue -VarInfo $m -OverrideMap $overrides } `
+                        -AllocatePointedObject $allocatePtr `
+                        -PointerDepth $ptrDepth
             } elseif ($gv.ArrayLength -gt 0) {
                 # Scalar array — use per-index overrides when present, else default to [0]
                 if ($script:_pointerIndexedOverrides.ContainsKey($shortName) -and $script:_pointerIndexedOverrides[$shortName].Count -gt 0) {
@@ -430,7 +839,7 @@ function Build-TCInputsOutputs {
             $varName  = $ev.Name
             $defVal   = Get-VarDefaultValue -VarInfo $ev -OverrideMap $overrides
 
-            if ($ev.IsUnion -and $ev.Members.Count -gt 0) {
+            if ($ev.IsUnion -and $ev.Members.Count -gt 0 -and $ev.FullDeclaration -notmatch '\*') {
                 $firstMem  = $ev.Members | Where-Object { $_.Passing -notmatch 'IRRELEVANT' } | Select-Object -First 1
                 if (-not $firstMem) { $firstMem = $ev.Members[0] }
                 $mVal = Get-VarDefaultValue -VarInfo $firstMem -OverrideMap $overrides
@@ -441,7 +850,7 @@ function Build-TCInputsOutputs {
                     $out += "`t`t`t`t$varName = $($firstMem.Name)`n"
                     $out += "`t`t`t`t$varName.$($firstMem.Name) = $mVal`n"
                 }
-            } elseif ($ev.IsStruct -and $ev.Members.Count -gt 0) {
+            } elseif ($ev.IsStruct -and $ev.Members.Count -gt 0 -and $ev.FullDeclaration -notmatch '\*') {
                 $idxSuffix = if ($ev.ArrayLength -gt 0) { '[0]' } else { '' }
                 $out += "`t`t`t`t$varName$idxSuffix {`n"
                 foreach ($mem in $ev.Members) {
@@ -452,16 +861,56 @@ function Build-TCInputsOutputs {
                 $out += "`t`t`t`t}`n"
             } elseif ($ev.FullDeclaration -match '\*') {
                 # Pointer variable: cfgRomContainerROM_DS1 = target_cfgRomContainerROM_DS1
-                #                   &target_cfgRomContainerROM_DS1[0] = <value>
-                $targetName = "target_$($ev.Name)"
-                $out += "`t`t`t`t$varName = $targetName`n"
-                if ($script:_pointerIndexedOverrides.ContainsKey($ev.Name)) {
+                #                   target_cfgRomContainerROM_DS1.member = <value>
+                $ptrSpec = if ($script:_pointerObjectOverrides.ContainsKey($ev.Name)) { $script:_pointerObjectOverrides[$ev.Name] } else { $null }
+                $targetName = if ($ptrSpec -and $ptrSpec.DynamicObject) { [string]$ptrSpec.DynamicObject } else { "target_$($ev.Name)" }
+                $allocatePtr = if ($ptrSpec) { [bool]$ptrSpec.Allocate } else { $true }
+                $ptrDepth = Get-PointerDepthFromDeclaration -Declaration $ev.FullDeclaration
+                $memberOverrides = if ($script:_pointerMemberOverrides.ContainsKey($ev.Name)) { $script:_pointerMemberOverrides[$ev.Name] } else { $null }
+                if ($ptrSpec -and $ptrSpec.Members) {
+                    if (-not $memberOverrides) { $memberOverrides = @{} }
+                    foreach ($k in $ptrSpec.Members.Keys) { $memberOverrides[$k] = $ptrSpec.Members[$k] }
+                }
+                $initMembers = @(Get-FullPointerMemberList -PointerDeclaration $ev.FullDeclaration -InterfaceMembers $ev.Members)
+                if ($initMembers.Count -gt 0) {
+                    $out += Emit-PointerTargetInputLines `
+                        -VariableName $varName `
+                        -TargetName $targetName `
+                        -InitMembers $initMembers `
+                        -MemberOverrides $memberOverrides `
+                        -OverrideMap $overrides `
+                        -FallbackValue $defVal `
+                        -DefaultValueResolver { param($m) Get-VarDefaultValue -VarInfo $m -OverrideMap $overrides } `
+                        -AllocatePointedObject $allocatePtr `
+                        -PointerDepth $ptrDepth
+                } elseif ($script:_pointerIndexedOverrides.ContainsKey($ev.Name)) {
+                    $out += "`t`t`t`t$varName = $targetName`[0`]`n"
                     foreach ($kv in ($script:_pointerIndexedOverrides[$ev.Name].GetEnumerator() | Sort-Object { [int]$_.Key })) {
-                        $out += "`t`t`t`t&$targetName[$($kv.Key)] = $($kv.Value)`n"
-                        Write-Host "  [PTR $varName] &$targetName[$($kv.Key)] = $($kv.Value)" -ForegroundColor DarkGreen
+                        $out += "`t`t`t`t$targetName`[$($kv.Key)`] = $($kv.Value)`n"
+                        Write-Host "  [PTR $varName] $targetName[$($kv.Key)] = $($kv.Value)" -ForegroundColor DarkGreen
                     }
+                } elseif ($memberOverrides -and $memberOverrides.Count -gt 0) {
+                    $out += Emit-PointerTargetInputLines `
+                        -VariableName $varName `
+                        -TargetName $targetName `
+                        -InitMembers @() `
+                        -MemberOverrides $memberOverrides `
+                        -OverrideMap $overrides `
+                        -FallbackValue $defVal `
+                        -DefaultValueResolver { param($m) Get-VarDefaultValue -VarInfo $m -OverrideMap $overrides } `
+                        -AllocatePointedObject $allocatePtr `
+                        -PointerDepth $ptrDepth
                 } else {
-                    $out += "`t`t`t`t&$targetName[0] = $defVal`n"
+                    $out += Emit-PointerTargetInputLines `
+                        -VariableName $varName `
+                        -TargetName $targetName `
+                        -InitMembers @() `
+                        -MemberOverrides @{} `
+                        -OverrideMap $overrides `
+                        -FallbackValue $defVal `
+                        -DefaultValueResolver { param($m) Get-VarDefaultValue -VarInfo $m -OverrideMap $overrides } `
+                        -AllocatePointedObject $allocatePtr `
+                        -PointerDepth $ptrDepth
                 }
             } elseif ($ev.ArrayLength -gt 0) {
                 # Scalar array — use per-index overrides when present, else default to [0]
@@ -483,7 +932,7 @@ function Build-TCInputsOutputs {
             $pName  = $p.Name
             $defVal = Get-VarDefaultValue -VarInfo @{ Name = $p.Name; FullDeclaration = $p.Type } -OverrideMap $overrides
 
-            if ($p.IsStruct -or $p.IsUnion) {
+            if (($p.IsStruct -or $p.IsUnion) -and $p.Type -notmatch '\*') {
                 if ($p.Members.Count -gt 0) {
                     $out += "`t`t`t`t$pName {`n"
                     foreach ($mem in $p.Members) {
@@ -497,17 +946,26 @@ function Build-TCInputsOutputs {
                 }
             } elseif ($p.Type -match '\*') {
                 # Pointer parameter
-                $targetName = "target_$pName"
-                $out += "`t`t`t`t$pName = $targetName`n"
+                $ptrSpec = if ($script:_pointerObjectOverrides.ContainsKey($pName)) { $script:_pointerObjectOverrides[$pName] } else { $null }
+                $targetName = if ($ptrSpec -and $ptrSpec.DynamicObject) { [string]$ptrSpec.DynamicObject } else { "target_$pName" }
+                $allocatePtr = if ($ptrSpec) { [bool]$ptrSpec.Allocate } else { $true }
+                $ptrDepth = Get-PointerDepthFromDeclaration -Declaration $p.Type
                 $memberOverrides = if ($script:_pointerMemberOverrides.ContainsKey($pName)) { $script:_pointerMemberOverrides[$pName] } else { $null }
-                if ($memberOverrides -and $memberOverrides.Count -gt 0) {
-                    # Preserve pointer-member inputs from SetValues, e.g. config_ptr->field.
-                    foreach ($entry in $memberOverrides.GetEnumerator() | Sort-Object Name) {
-                        $out += "`t`t`t`t$targetName[0].$($entry.Name) = $($entry.Value)`n"
-                    }
-                } else {
-                    $out += "`t`t`t`t&$targetName`[0`] = $defVal`n"
+                if ($ptrSpec -and $ptrSpec.Members) {
+                    if (-not $memberOverrides) { $memberOverrides = @{} }
+                    foreach ($k in $ptrSpec.Members.Keys) { $memberOverrides[$k] = $ptrSpec.Members[$k] }
                 }
+                $initMembers = @(Get-FullPointerMemberList -PointerDeclaration $p.Type -InterfaceMembers $p.Members)
+                $out += Emit-PointerTargetInputLines `
+                    -VariableName $pName `
+                    -TargetName $targetName `
+                    -InitMembers $initMembers `
+                    -MemberOverrides $memberOverrides `
+                    -OverrideMap $overrides `
+                    -FallbackValue $defVal `
+                    -DefaultValueResolver { param($m) Get-VarDefaultValue -VarInfo @{ Name = $m.Name; FullDeclaration = $m.Type } -OverrideMap $overrides } `
+                        -AllocatePointedObject $allocatePtr `
+                        -PointerDepth $ptrDepth
             } else {
                 $out += "`t`t`t`t$pName = $defVal`n"
             }

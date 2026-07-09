@@ -27,13 +27,68 @@ if (-not (Test-Path $scriptFile)) {
 }
 
 Set-Location $ScriptRoot
-Write-Host "`n[CONTEXT] NOTE: Step 8 assumes Tessy context is already selected (from Step 1)." -ForegroundColor DarkGray
+Write-Host "`n[CONTEXT] Selecting Tessy context before import..." -ForegroundColor Yellow
+
+$tessy = Join-Path $ScriptRoot "tessycmd.exe"
+& $tessy select-project "$TessyProject" 2>&1 | Out-Null
+if ($LASTEXITCODE -ne 0) {
+    Write-Host "[ERROR] Failed to select project '$TessyProject'" -ForegroundColor Red
+    exit 2
+}
+
+& $tessy select-test-collection "$TestCollection" 2>&1 | Out-Null
+if ($LASTEXITCODE -ne 0) {
+    Write-Host "[ERROR] Failed to select test collection '$TestCollection'" -ForegroundColor Red
+    exit 2
+}
+
+if ($Folder -ne "." -and $Folder -ne "" -and $null -ne $Folder) {
+    $folders = @($Folder -split '[/\\]' | Where-Object { $_ -ne '' })
+    for ($idx = 0; $idx -lt $folders.Count; $idx++) {
+        $folderLevel = $folders[$idx]
+        if ($idx -eq 0) {
+            & $tessy select-folder -collection "$folderLevel" 2>&1 | Out-Null
+        } else {
+            & $tessy select-folder "$folderLevel" 2>&1 | Out-Null
+        }
+        if ($LASTEXITCODE -ne 0) {
+            Write-Host "[ERROR] Failed to select folder '$folderLevel' from path '$Folder'" -ForegroundColor Red
+            exit 2
+        }
+    }
+}
+
+$moduleName = $Module -replace '\.c$',''
+$noFolder = ($Folder -eq "." -or $Folder -eq "" -or $null -eq $Folder)
+if ($noFolder) {
+    & $tessy select-module -c "$Module" 2>&1 | Out-Null
+} else {
+    & $tessy select-module "$Module" 2>&1 | Out-Null
+}
+if ($LASTEXITCODE -ne 0) {
+    if ($noFolder) {
+        & $tessy select-module -c "$moduleName" 2>&1 | Out-Null
+    } else {
+        & $tessy select-module "$moduleName" 2>&1 | Out-Null
+    }
+    if ($LASTEXITCODE -ne 0) {
+        Write-Host "[ERROR] Failed to select module '$Module' or '$moduleName'" -ForegroundColor Red
+        exit 2
+    }
+}
+
+& $tessy select-test-object "$TestObject" 2>&1 | Out-Null
+if ($LASTEXITCODE -ne 0) {
+    Write-Host "[ERROR] Failed to select test object '$TestObject'" -ForegroundColor Red
+    exit 2
+}
+Write-Host "[OK] Tessy context selected." -ForegroundColor Green
 
 # Import test case script (replace mode to avoid HTTP 500 errors from duplicate test cases)
 Write-Host "`n[IMPORT] Importing test case script..." -ForegroundColor Yellow
 Write-Host "  Script: $scriptFile" -ForegroundColor DarkGray
 
-$importOutput = tessycmd import "$scriptFile" 2>&1
+$importOutput = & $tessy import "$scriptFile" 2>&1
 Write-Host $importOutput
 $importExitCode = $LASTEXITCODE
 if ($importExitCode -ne 0) {
@@ -53,7 +108,7 @@ if (-not (Test-Path $batchFileHtml)) {
 }
 
 Write-Host "  Batch: $batchFileHtml" -ForegroundColor DarkGray
-tessycmd -animate exec-test "$batchFileHtml"
+& $tessy -animate exec-test "$batchFileHtml"
 $execExitCode = $LASTEXITCODE
 
 if ($execExitCode -eq 0) {
