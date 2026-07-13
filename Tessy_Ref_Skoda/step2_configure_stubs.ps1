@@ -224,6 +224,15 @@ if ($importExit -eq 0) {
     $global:LASTEXITCODE = 0
 }
 
+# Keep the generated import YAML for later stages, but do not treat the earlier export file as the AI-testcase payload.
+$importYml = Join-Path $ExportDir "yml\${TestObject}_import.yml"
+$planPathCanonical = Join-Path $ExportDir "json_testcase\${TestObject}_testcase_plan.json"
+$planPathLegacy = Join-Path $ExportDir "testObjectCode\${TestObject}_testcase_plan.json"
+if (-not (Test-Path $importYml) -and ((Test-Path $planPathCanonical) -or (Test-Path $planPathLegacy))) {
+    $generator = Join-Path $PSScriptRoot "generate_tessy_import_yml.ps1"
+    & $generator -TestObject $TestObject -Module $Module -WorkDir $ExportDir -ScriptRoot $ScriptRoot -StubNames @('ucDrv_CfgSetFCCFreqOfMCLK','ucDrv_ConfigureFCC','ucDrv_FCCDone','ucDrv_LockRegister','ucDrv_ReadFCC','ucDrv_SetFCCPeriod','ucDrv_StartFCC','ucDrv_UnlockRegister') -TessyProject $TessyProject
+}
+
 Write-Host "`n================================================================================" -ForegroundColor Cyan
 Write-Host "  STEP 2 COMPLETE" -ForegroundColor Cyan
 Write-Host "  Next: Run step3_find_and_save_function_code.ps1" -ForegroundColor Cyan

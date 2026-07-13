@@ -1,0 +1,13 @@
+﻿{
+    "TestObject":  "ucDrv_CfgClockSelfTst",
+    "Module":  "ucDrv_2E_Cfg",
+    "C0":  100,
+    "C1":  100,
+    "Total":  5,
+    "Passed":  5,
+    "Failed":  0,
+    "FailureDetails":  [
+
+                       ],
+    "Timestamp":  "2026-07-13 10:53:15"
+}

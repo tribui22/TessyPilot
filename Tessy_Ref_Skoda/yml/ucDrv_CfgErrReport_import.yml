@@ -1,0 +1,14 @@
+Tessy: {Version: 5.1.14, File Type: Import/Export}
+---
+General: {Project: sk336_t2, Testobject: ucDrv_CfgErrReport, PDB File: 'C:\Users\buimi1\Documents\03_repos\e-gsh_non-autosar_bsw_sk336-rcl-impl\test\tessy\tessy.pdbx', Tessy Version: 5.1.14, Export Date: '2026-07-13', Module: ucDrv_2E_Cfg}
+---
+Properties:
+- ['1', '0', '', Dummy, '', '', '', '']
+---
+Stubs:
+- ['0', '0', BleM_ReportError, '']
+---
+Values:
+- []
+- []
+- [tc1.1]

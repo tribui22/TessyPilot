@@ -1,0 +1,23 @@
+Tessy: {Version: 5.1.14, File Type: Import/Export}
+---
+General: {Project: sk336_t2, Testobject: ucDrv_CfgClockSelfTst, PDB File: 'C:\Users\buimi1\Documents\03_repos\e-gsh_non-autosar_bsw_sk336-rcl-impl\test\tessy\tessy.pdbx', Tessy Version: 5.1.14, Export Date: '2026-07-13', Module: ucDrv_2E_Cfg}
+---
+Properties:
+- ['1', '0', '', Dummy, '', '', '', '']
+---
+Stubs:
+- ['0', '0', ucDrv_ConfigureFCC, '']
+- ['0', '0', ucDrv_FCCDone, 'int mapped_tc = (TS_CURRENT_TESTCASE - 1) % 3 + 1; if (mapped_tc == 1) { static int call_count = 0; if (call_count++ == 0) return 0; return 1; } return 0;']
+- ['0', '0', ucDrv_ReadFCC, 'int mapped_tc = (TS_CURRENT_TESTCASE - 1) % 3 + 1; if (mapped_tc == 1) { return 2; } else if (mapped_tc == 2) { return 0; } else if (mapped_tc == 3) { return 1; } return 0;']
+- ['0', '0', ucDrv_SetFCCPeriod, '']
+- ['0', '0', ucDrv_StartFCC, '']
+- ['0', '0', ucDrv_UnlockRegister, '']
+---
+Values:
+- ['&target_config_ptr[0].expectedFrequency_en', '&target_config_ptr[0].fccCountingPeriods_u8', '&target_config_ptr[0].fccMeasureSource_en', '&target_config_ptr[0].fccTriggerLevel_en', '&target_config_ptr[0].fccTriggerSource_en', '&target_config_ptr[0].testTimeOut', '&target_config_ptr[0].tolerance_u8', config_ptr, return]
+- [i, i, i, i, i, i, i, i, o]
+- [tc1.1, '1000', '31', '0', '0', '0', '10', '10', target_config_ptr, ucDrv_ClkSelfTst_OvFrq]
+- [tc2.1, '1000', '31', '1', '0', '0', '5', '10', target_config_ptr, ucDrv_ClkSelfTst_UnderFrq]
+- [tc3.1, '1000', '31', '0', '0', '0', '0', '10', target_config_ptr, ucDrv_ClkSelfTst_Pass]
+- [tc4.1, '1000', '31', '0', '0', '0', '10', '10', target_config_ptr, ucDrv_ClkSelfTst_OvFrq]
+- [tc5.1, '1000', '31', '1', '0', '0', '5', '10', target_config_ptr, ucDrv_ClkSelfTst_UnderFrq]

@@ -84,11 +84,20 @@ if ($LASTEXITCODE -ne 0) {
 }
 Write-Host "[OK] Tessy context selected." -ForegroundColor Green
 
-# Import test case script (replace mode to avoid HTTP 500 errors from duplicate test cases)
-Write-Host "`n[IMPORT] Importing test case script..." -ForegroundColor Yellow
-Write-Host "  Script: $scriptFile" -ForegroundColor DarkGray
+# Import the AI-derived testcase plan as Tessy YAML instead of the legacy exported YAML.
+Write-Host "`n[IMPORT] Importing testcase-plan YAML..." -ForegroundColor Yellow
+$importYml = Join-Path $WorkingDir "yml\${TestObject}_import.yml"
+if (-not (Test-Path $importYml)) {
+    $generator = Join-Path $PSScriptRoot "generate_tessy_import_yml.ps1"
+    & $generator -TestObject $TestObject -Module $Module -WorkDir $WorkingDir -ScriptRoot $ScriptRoot -StubNames @('ucDrv_CfgSetFCCFreqOfMCLK','ucDrv_ConfigureFCC','ucDrv_FCCDone','ucDrv_LockRegister','ucDrv_ReadFCC','ucDrv_SetFCCPeriod','ucDrv_StartFCC','ucDrv_UnlockRegister') -TessyProject $TessyProject
+    if ($LASTEXITCODE -ne 0) {
+        Write-Host "[ERROR] Failed to generate Tessy import YAML" -ForegroundColor Red
+        exit 1
+    }
+}
+Write-Host "  YAML: $importYml" -ForegroundColor DarkGray
 
-$importOutput = & $tessy import "$scriptFile" 2>&1
+$importOutput = & $tessy import "$importYml" 2>&1
 Write-Host $importOutput
 $importExitCode = $LASTEXITCODE
 if ($importExitCode -ne 0) {

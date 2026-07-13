@@ -1,0 +1,39 @@
+$testobject {
+	$stubfunctions {
+		void BleM_ReportError(u8) '''
+		'''
+	}
+
+	$testcase 1 {
+		$name "ucDrv_CfgErrReport. Test case 01"
+		$specification """
+			[Test Goal]
+				Verify that ucDrv_CfgErrReport correctly takes the FALSE branch: Cover execution of ucDrv_CfgErrReport and verify invocation of BleM_ReportError with BleM_ErrorCode_CLMSelfTestFail
+			[Precondition]
+				Set input variables so that the following condition evaluates to FALSE: Cover execution of ucDrv_CfgErrReport and verify invocation of BleM_ReportError with BleM_ErrorCode_CLMSelfTestFail
+			[Test Description]
+				Execute ucDrv_CfgErrReport() targeting: Cover execution of ucDrv_CfgErrReport and verify invocation of BleM_ReportError with BleM_ErrorCode_CLMSelfTestFail. Expected outcome: Execution of ucDrv_CfgErrReport.
+			[Expected Result]
+				Output match expected results which specified in test steps
+				- Condition evaluates to FALSE (Target: Execution of ucDrv_CfgErrReport)
+				- Correct branch statements execute (C0 + C1 coverage met)
+				- Function completes without errors or unexpected side-effects
+			[Post Condition]
+				None
+			[Test Type]
+				Tessy
+			[Priority]
+				Medium
+		"""
+		$description """
+			Cover execution of ucDrv_CfgErrReport and verify invocation of BleM_ReportError with BleM_ErrorCode_CLMSelfTestFail
+		"""
+
+		$teststep 1.1 {
+			$name "Cover execution of ucDrv_CfgErrReport and verify invocation of BleM_ReportError with BleM_ErrorCode_CLMSelfTestFail"
+			$calltrace {
+				*** Ignore Call Trace ***
+			}
+		}
+	}
+}

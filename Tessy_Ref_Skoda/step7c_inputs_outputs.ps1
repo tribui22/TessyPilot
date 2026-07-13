@@ -1005,7 +1005,9 @@ function Build-TCInputsOutputs {
             }
             if (-not $isStructReturn) {
                 $retDefault = '0'
-                if ($retDecl -match '\bboolean_t\b|\bbool\b') {
+                if ($overrides -and $overrides.Contains('return')) {
+                    $retDefault = $overrides['return']
+                } elseif ($retDecl -match '\bboolean_t\b|\bbool\b') {
                     $retDefault = 'FALSE'
                 } elseif ($retDecl -match '\*') {
                     $retDefault = 'NULL'

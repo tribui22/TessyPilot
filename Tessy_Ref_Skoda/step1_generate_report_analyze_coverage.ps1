@@ -113,13 +113,13 @@ $batchContentHtml = @"
     <operations>
         <operation key="executeTest">
             <options>
-                <option key="checkInterface" value="false"/>
-                <option key="generateDriver" value="false"/>
+                <option key="checkInterface" value="true"/>
+                <option key="generateDriver" value="true"/>
                 <option key="run" value="true"/>
                 <option key="runNoInstrumentationTest" value="false"/>
                 <option key="runPatternTest" value="false"/>
                 <option key="runMutationTest" value="false"/>
-                <option key="createNewTestRun" value="false"/>
+                <option key="createNewTestRun" value="true"/>
                 <option key="retryAbortedExecution" value="false"/>
                 <option key="instrumentationType" value="TESTOBJECT_ONLY"/>
                 <option key="defaultCoverage" value="false"/>

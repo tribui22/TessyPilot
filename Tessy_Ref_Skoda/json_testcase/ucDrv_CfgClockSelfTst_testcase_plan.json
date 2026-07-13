@@ -1,0 +1,139 @@
+{
+  "FunctionSignature": "ucDrv_ClkSelfTst_sts_t ucDrv_CfgClockSelfTst(const ucDrv_Cfg_ClkSelfTst_t * config_ptr)",
+  "TotalTestCases": 3,
+  "DefaultValues": [
+    {
+      "PointerName": "config_ptr",
+      "Allocate": true,
+      "DynamicObject": "target_config_ptr",
+      "Members": [
+        {
+          "Name": "fccTriggerLevel_en",
+          "Value": "0"
+        },
+        {
+          "Name": "fccTriggerSource_en",
+          "Value": "0"
+        },
+        {
+          "Name": "fccMeasureSource_en",
+          "Value": "0"
+        },
+        {
+          "Name": "fccCountingPeriods_u8",
+          "Value": "31"
+        },
+        {
+          "Name": "expectedFrequency_en",
+          "Value": "1000"
+        },
+        {
+          "Name": "tolerance_u8",
+          "Value": "10"
+        },
+        {
+          "Name": "testTimeOut",
+          "Value": "100"
+        }
+      ]
+    }
+  ],
+  "TestCases": [
+    {
+      "TCId": 1,
+      "Description": "TC1: loop executes once, frequency greater than upper bound (OvFrq)",
+      "Target": "if(ucDrv_Cfg_FccFrequency_u32 > ucDrv_Cfg_FccFreqTempUp_u32); loop entered once",
+      "SetValues": [
+        {
+          "N": "return",
+          "V": "ucDrv_ClkSelfTst_OvFrq"
+        },
+        {
+          "PointerName": "config_ptr",
+          "Allocate": true,
+          "DynamicObject": "target_config_ptr",
+          "Members": [
+            {
+              "Name": "testTimeOut",
+              "Value": "10"
+            }
+          ]
+        }
+      ],
+      "StubFunctions": [
+        {
+          "Name": "ucDrv_FCCDone",
+          "Body": "static int call_count = 0;\n    if (call_count++ == 0) return 0;\n    return 1;"
+        },
+        {
+          "Name": "ucDrv_ReadFCC",
+          "Return": "2"
+        }
+      ]
+    },
+    {
+      "TCId": 2,
+      "Description": "TC2: loop exits via timeout, frequency less than lower bound (UnderFrq)",
+      "Target": "else if(ucDrv_Cfg_FccFrequency_u32 < ucDrv_Cfg_FccFreqTempDown_u32); loop exits on timeout",
+      "SetValues": [
+        {
+          "N": "return",
+          "V": "ucDrv_ClkSelfTst_UnderFrq"
+        },
+        {
+          "PointerName": "config_ptr",
+          "Allocate": true,
+          "DynamicObject": "target_config_ptr",
+          "Members": [
+            {
+              "Name": "testTimeOut",
+              "Value": "5"
+            },
+            {
+              "Name": "fccMeasureSource_en",
+              "Value": "1"
+            }
+          ]
+        }
+      ],
+      "StubFunctions": [
+        {
+          "Name": "ucDrv_FCCDone",
+          "Return": "0"
+        },
+        {
+          "Name": "ucDrv_ReadFCC",
+          "Return": "0"
+        }
+      ]
+    },
+    {
+      "TCId": 3,
+      "Description": "TC3: loop skipped because testTimeOut is 0, frequency within tolerance (Pass)",
+      "Target": "else branch; loop skipped immediately",
+      "SetValues": [
+        {
+          "PointerName": "config_ptr",
+          "Allocate": true,
+          "DynamicObject": "target_config_ptr",
+          "Members": [
+            {
+              "Name": "testTimeOut",
+              "Value": "0"
+            }
+          ]
+        }
+      ],
+      "StubFunctions": [
+        {
+          "Name": "ucDrv_FCCDone",
+          "Return": "0"
+        },
+        {
+          "Name": "ucDrv_ReadFCC",
+          "Return": "1"
+        }
+      ]
+    }
+  ]
+}
