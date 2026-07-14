@@ -1,0 +1,42 @@
+﻿================================================================================
+TESSY INTERFACE INFORMATION - ucDrv_CfgClockSelfTst
+Generated: 2026-07-13 10:10:35
+================================================================================
+
+EXTERNAL FUNCTIONS:
+-------------------
+void ucDrv_UnlockRegister()
+void ucDrv_ConfigureFCC(const ucDrv_Cfg_ClkSelfTst_t *)
+void ucDrv_SetFCCPeriod(const ucDrv_Cfg_ClkSelfTst_t *)
+void ucDrv_StartFCC()
+boolean_t ucDrv_FCCDone()
+u32 ucDrv_ReadFCC()
+
+LOCAL FUNCTIONS:
+----------------
+
+
+EXTERNAL VARIABLES:
+-------------------
+
+
+GLOBAL VARIABLES:
+-----------------
+ucDrv_Cfg_ClkSelfTst_t * config_ptr [Passing: IN]
+    ucDrv_Cfg_SYSCTL_FCC_Trigger_Level_t fccTriggerLevel_en [Passing: IRRELEVANT]
+    ucDrv_Cfg_SYSCTL_FCC_Trigger_Source_t fccTriggerSource_en [Passing: IRRELEVANT]
+    ucDrv_Cfg_SYSCTL_FCC_Measure_Source_t fccMeasureSource_en [Passing: IRRELEVANT]
+    u8 fccCountingPeriods_u8 [Passing: IN]
+    ucDrv_Cfg_SYSCTL_FCC_Measure_Freq_Src_t expectedFrequency_en [Passing: IN]
+    u8 tolerance_u8 [Passing: IN]
+    u32 testTimeOut [Passing: IN]
+ucDrv_ClkSelfTst_sts_t [Passing: OUT]
+
+PARAMETERS:
+-----------
+ [Passing: ]
+
+RETURN TYPE:
+------------
+
+================================================================================

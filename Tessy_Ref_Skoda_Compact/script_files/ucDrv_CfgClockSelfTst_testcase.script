@@ -1,0 +1,180 @@
+$testobject {
+	$stubfunctions {
+		void ucDrv_ConfigureFCC(const ucDrv_Cfg_ClkSelfTst_t * arg1) '''
+		'''
+		boolean_t ucDrv_FCCDone() '''
+			if (TS_CURRENT_TESTCASE == 1) { static int call_count = 0; if (call_count++ == 0) return 0; return 1; } return 0;
+		'''
+		u32 ucDrv_ReadFCC() '''
+			if (TS_CURRENT_TESTCASE == 1) { return 2; } else if (TS_CURRENT_TESTCASE == 2) { return 0; } else if (TS_CURRENT_TESTCASE == 3) { return 1; } return 0;
+		'''
+		void ucDrv_SetFCCPeriod(const ucDrv_Cfg_ClkSelfTst_t * arg1) '''
+		'''
+		void ucDrv_StartFCC() '''
+		'''
+		void ucDrv_UnlockRegister() '''
+		'''
+	}
+
+	$testcase 1 {
+		$name "ucDrv_CfgClockSelfTst. Test case 01"
+		$specification """
+			[Test Goal]
+				Verify that ucDrv_CfgClockSelfTst correctly takes the FALSE branch: loop executes once, frequency greater than upper bound (OvFrq)
+			[Precondition]
+				Set input variables so that the following condition evaluates to FALSE: loop executes once, frequency greater than upper bound (OvFrq)
+			[Test Description]
+				Execute ucDrv_CfgClockSelfTst() targeting: loop executes once, frequency greater than upper bound (OvFrq). Expected outcome: if(ucDrv_Cfg_FccFrequency_u32 > ucDrv_Cfg_FccFreqTempUp_u32); loop entered once.
+			[Expected Result]
+				Output match expected results which specified in test steps
+				- Condition evaluates to FALSE (Target: if(ucDrv_Cfg_FccFrequency_u32 > ucDrv_Cfg_FccFreqTempUp_u32); loop entered once)
+				- Correct branch statements execute (C0 + C1 coverage met)
+				- Function completes without errors or unexpected side-effects
+			[Post Condition]
+				None
+			[Test Type]
+				Tessy
+			[Priority]
+				Medium
+		"""
+		$description """
+			loop executes once, frequency greater than upper bound (OvFrq)
+		"""
+
+		$teststep 1.1 {
+			$name "loop executes once, frequency greater than upper bound (OvFrq)"
+			$stubfunctions {
+				boolean_t ucDrv_FCCDone() '''
+					static int call_count = 0;
+    if (call_count++ == 0) return 0;
+    return 1;
+				'''
+				u32 ucDrv_ReadFCC() '''
+					return 2;
+				'''
+			}
+			$inputs {
+				config_ptr = target_config_ptr[0]
+				target_config_ptr[0].fccTriggerLevel_en = 0
+				target_config_ptr[0].fccTriggerSource_en = 0
+				target_config_ptr[0].fccMeasureSource_en = 0
+				target_config_ptr[0].fccCountingPeriods_u8 = 31
+				target_config_ptr[0].expectedFrequency_en = 1000
+				target_config_ptr[0].tolerance_u8 = 10
+				target_config_ptr[0].testTimeOut = 10
+			}
+			$outputs {
+				return = ucDrv_ClkSelfTst_Pass
+			}
+			$calltrace {
+				*** Ignore Call Trace ***
+			}
+		}
+	}
+	$testcase 2 {
+		$name "ucDrv_CfgClockSelfTst. Test case 02"
+		$specification """
+			[Test Goal]
+				Verify that ucDrv_CfgClockSelfTst correctly takes the FALSE branch: loop exits via timeout, frequency less than lower bound (UnderFrq)
+			[Precondition]
+				Set input variables so that the following condition evaluates to FALSE: loop exits via timeout, frequency less than lower bound (UnderFrq)
+			[Test Description]
+				Execute ucDrv_CfgClockSelfTst() targeting: loop exits via timeout, frequency less than lower bound (UnderFrq). Expected outcome: else if(ucDrv_Cfg_FccFrequency_u32 < ucDrv_Cfg_FccFreqTempDown_u32); loop exits on timeout.
+			[Expected Result]
+				Output match expected results which specified in test steps
+				- Condition evaluates to FALSE (Target: else if(ucDrv_Cfg_FccFrequency_u32 < ucDrv_Cfg_FccFreqTempDown_u32); loop exits on timeout)
+				- Correct branch statements execute (C0 + C1 coverage met)
+				- Function completes without errors or unexpected side-effects
+			[Post Condition]
+				None
+			[Test Type]
+				Tessy
+			[Priority]
+				Medium
+		"""
+		$description """
+			loop exits via timeout, frequency less than lower bound (UnderFrq)
+		"""
+
+		$teststep 2.1 {
+			$name "loop exits via timeout, frequency less than lower bound (UnderFrq)"
+			$stubfunctions {
+				boolean_t ucDrv_FCCDone() '''
+					return 0;
+				'''
+				u32 ucDrv_ReadFCC() '''
+					return 0;
+				'''
+			}
+			$inputs {
+				config_ptr = target_config_ptr[0]
+				target_config_ptr[0].fccTriggerLevel_en = 0
+				target_config_ptr[0].fccTriggerSource_en = 0
+				target_config_ptr[0].fccMeasureSource_en = 1
+				target_config_ptr[0].fccCountingPeriods_u8 = 31
+				target_config_ptr[0].expectedFrequency_en = 1000
+				target_config_ptr[0].tolerance_u8 = 10
+				target_config_ptr[0].testTimeOut = 5
+			}
+			$outputs {
+				return = ucDrv_ClkSelfTst_Pass
+			}
+			$calltrace {
+				*** Ignore Call Trace ***
+			}
+		}
+	}
+	$testcase 3 {
+		$name "ucDrv_CfgClockSelfTst. Test case 03"
+		$specification """
+			[Test Goal]
+				Verify that ucDrv_CfgClockSelfTst correctly takes the FALSE branch: loop skipped because testTimeOut is 0, frequency within tolerance (Pass)
+			[Precondition]
+				Set input variables so that the following condition evaluates to FALSE: loop skipped because testTimeOut is 0, frequency within tolerance (Pass)
+			[Test Description]
+				Execute ucDrv_CfgClockSelfTst() targeting: loop skipped because testTimeOut is 0, frequency within tolerance (Pass). Expected outcome: else branch; loop skipped immediately.
+			[Expected Result]
+				Output match expected results which specified in test steps
+				- Condition evaluates to FALSE (Target: else branch; loop skipped immediately)
+				- Correct branch statements execute (C0 + C1 coverage met)
+				- Function completes without errors or unexpected side-effects
+			[Post Condition]
+				None
+			[Test Type]
+				Tessy
+			[Priority]
+				Medium
+		"""
+		$description """
+			loop skipped because testTimeOut is 0, frequency within tolerance (Pass)
+		"""
+
+		$teststep 3.1 {
+			$name "loop skipped because testTimeOut is 0, frequency within tolerance (Pass)"
+			$stubfunctions {
+				boolean_t ucDrv_FCCDone() '''
+					return 0;
+				'''
+				u32 ucDrv_ReadFCC() '''
+					return 1;
+				'''
+			}
+			$inputs {
+				config_ptr = target_config_ptr[0]
+				target_config_ptr[0].fccTriggerLevel_en = 0
+				target_config_ptr[0].fccTriggerSource_en = 0
+				target_config_ptr[0].fccMeasureSource_en = 0
+				target_config_ptr[0].fccCountingPeriods_u8 = 31
+				target_config_ptr[0].expectedFrequency_en = 1000
+				target_config_ptr[0].tolerance_u8 = 10
+				target_config_ptr[0].testTimeOut = 0
+			}
+			$outputs {
+				return = ucDrv_ClkSelfTst_Pass
+			}
+			$calltrace {
+				*** Ignore Call Trace ***
+			}
+		}
+	}
+}
