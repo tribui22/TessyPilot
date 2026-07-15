@@ -1,0 +1,19 @@
+{
+  "FunctionSignature": "void ucDrv_CfgErrReport(void)",
+  "TotalTestCases": 1,
+  "DefaultValues": [],
+  "TestCases": [
+    {
+      "TCId": 1,
+      "Description": "TC1: Cover execution of ucDrv_CfgErrReport and verify invocation of BleM_ReportError with BleM_ErrorCode_CLMSelfTestFail",
+      "Target": "Execution of ucDrv_CfgErrReport",
+      "SetValues": [],
+      "StubFunctions": [
+        {
+          "Name": "BleM_ReportError",
+          "Return": ""
+        }
+      ]
+    }
+  ]
+}

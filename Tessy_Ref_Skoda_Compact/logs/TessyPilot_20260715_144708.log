@@ -1,0 +1,98 @@
+
+========================================================================
+TIME       : 2026-07-15 14:47:09
+LEVEL      : INFO
+STEP       : STEP5
+FILE       : C:\Users\buimi1\Documents\03_repos\TessyPilot\Tessy_Ref_Skoda_Compact\logger.ps1
+LINE       : 109
+FUNCTION   : Write-Info
+COMMAND    : 
+EXITCODE   : 0
+TIMEOUT    : 0
+MESSAGE    : Started.
+========================================================================
+
+
+========================================================================
+TIME       : 2026-07-15 14:47:09
+LEVEL      : INFO
+STEP       : STEP5
+FILE       : C:\Users\buimi1\Documents\03_repos\TessyPilot\Tessy_Ref_Skoda_Compact\logger.ps1
+LINE       : 109
+FUNCTION   : Write-Info
+COMMAND    : 
+EXITCODE   : 0
+TIMEOUT    : 0
+MESSAGE    : Test Object: ucDrv_CfgErrReport
+========================================================================
+
+
+========================================================================
+TIME       : 2026-07-15 14:47:09
+LEVEL      : INFO
+STEP       : STEP5
+FILE       : C:\Users\buimi1\Documents\03_repos\TessyPilot\Tessy_Ref_Skoda_Compact\logger.ps1
+LINE       : 109
+FUNCTION   : Write-Info
+COMMAND    : 
+EXITCODE   : 0
+TIMEOUT    : 0
+MESSAGE    : Module: ucDrv_2E_Cfg
+========================================================================
+
+
+========================================================================
+TIME       : 2026-07-15 14:47:09
+LEVEL      : INFO
+STEP       : STEP5
+FILE       : C:\Users\buimi1\Documents\03_repos\TessyPilot\Tessy_Ref_Skoda_Compact\logger.ps1
+LINE       : 109
+FUNCTION   : Write-Info
+COMMAND    : 
+EXITCODE   : 0
+TIMEOUT    : 0
+MESSAGE    : Source Directory: C:\Users\buimi1\Documents\03_repos\e-gsh_non-autosar_bsw_sk336-rcl-impl\source\project\bsw\36_BSW\SystemStack\
+========================================================================
+
+
+========================================================================
+TIME       : 2026-07-15 14:47:09
+LEVEL      : INFO
+STEP       : STEP5
+FILE       : C:\Users\buimi1\Documents\03_repos\TessyPilot\Tessy_Ref_Skoda_Compact\logger.ps1
+LINE       : 109
+FUNCTION   : Write-Info
+COMMAND    : 
+EXITCODE   : 0
+TIMEOUT    : 0
+MESSAGE    : Annotated condition file saved: C:\Users\buimi1\Documents\03_repos\TessyPilot\Tessy_Ref_Skoda_Compact\testObjectCode\ucDrv_CfgErrReport_conditions_after_passing.c
+========================================================================
+
+
+========================================================================
+TIME       : 2026-07-15 14:47:09
+LEVEL      : INFO
+STEP       : STEP5
+FILE       : C:\Users\buimi1\Documents\03_repos\TessyPilot\Tessy_Ref_Skoda_Compact\logger.ps1
+LINE       : 109
+FUNCTION   : Write-Info
+COMMAND    : 
+EXITCODE   : 0
+TIMEOUT    : 0
+MESSAGE    : Resolved Defines=0, Types=0, ConstVariables=0, Macros=0
+========================================================================
+
+
+========================================================================
+TIME       : 2026-07-15 14:47:09
+LEVEL      : INFO
+STEP       : STEP5
+FILE       : C:\Users\buimi1\Documents\03_repos\TessyPilot\Tessy_Ref_Skoda_Compact\logger.ps1
+LINE       : 109
+FUNCTION   : Write-Info
+COMMAND    : 
+EXITCODE   : 0
+TIMEOUT    : 0
+MESSAGE    : Completed successfully.
+========================================================================
+

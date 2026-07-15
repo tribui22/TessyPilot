@@ -1,0 +1,280 @@
+
+========================================================================
+TIME       : 2026-07-15 14:53:53
+LEVEL      : INFO
+STEP       : STEP2
+FILE       : C:\Users\buimi1\Documents\03_repos\TessyPilot\Tessy_Ref_Skoda_Compact\logger.ps1
+LINE       : 109
+FUNCTION   : Write-Info
+COMMAND    : 
+EXITCODE   : 0
+TIMEOUT    : 0
+MESSAGE    : Started.
+========================================================================
+
+
+========================================================================
+TIME       : 2026-07-15 14:53:53
+LEVEL      : INFO
+STEP       : STEP2
+FILE       : C:\Users\buimi1\Documents\03_repos\TessyPilot\Tessy_Ref_Skoda_Compact\logger.ps1
+LINE       : 109
+FUNCTION   : Write-Info
+COMMAND    : 
+EXITCODE   : 0
+TIMEOUT    : 0
+MESSAGE    : Test Object: ucDrv_CfgErrReport
+========================================================================
+
+
+========================================================================
+TIME       : 2026-07-15 14:53:53
+LEVEL      : INFO
+STEP       : STEP2
+FILE       : C:\Users\buimi1\Documents\03_repos\TessyPilot\Tessy_Ref_Skoda_Compact\logger.ps1
+LINE       : 109
+FUNCTION   : Write-Info
+COMMAND    : 
+EXITCODE   : 0
+TIMEOUT    : 0
+MESSAGE    : Report Directory: C:\Data\_DevTools\razorcat\TESSY_5.1\bin\report
+========================================================================
+
+
+========================================================================
+TIME       : 2026-07-15 14:53:53
+LEVEL      : INFO
+STEP       : STEP2
+FILE       : C:\Users\buimi1\Documents\03_repos\TessyPilot\Tessy_Ref_Skoda_Compact\logger.ps1
+LINE       : 109
+FUNCTION   : Write-Info
+COMMAND    : export -format yaml -expected -file ucDrv_CfgErrReport_export C:\Users\buimi1\Documents\03_repos\TessyPilot\Tessy_Ref_Skoda_Compact\yml
+EXITCODE   : 0
+TIMEOUT    : 0
+MESSAGE    : Export current Tessy configuration to YAML: C:\Users\buimi1\Documents\03_repos\TessyPilot\Tessy_Ref_Skoda_Compact\yml\ucDrv_CfgErrReport_export.yml
+========================================================================
+
+
+========================================================================
+TIME       : 2026-07-15 14:53:54
+LEVEL      : INFO
+STEP       : STEP2
+FILE       : C:\Users\buimi1\Documents\03_repos\TessyPilot\Tessy_Ref_Skoda_Compact\logger.ps1
+LINE       : 109
+FUNCTION   : Write-Info
+COMMAND    : 
+EXITCODE   : 0
+TIMEOUT    : 0
+MESSAGE    : YAML exported successfully: C:\Users\buimi1\Documents\03_repos\TessyPilot\Tessy_Ref_Skoda_Compact\yml\ucDrv_CfgErrReport_export.yml
+========================================================================
+
+
+========================================================================
+TIME       : 2026-07-15 14:53:54
+LEVEL      : INFO
+STEP       : STEP2
+FILE       : C:\Users\buimi1\Documents\03_repos\TessyPilot\Tessy_Ref_Skoda_Compact\logger.ps1
+LINE       : 109
+FUNCTION   : Write-Info
+COMMAND    : 
+EXITCODE   : 0
+TIMEOUT    : 0
+MESSAGE    : Parse Tessy HTML/XML interface report for 'ucDrv_CfgErrReport'.
+========================================================================
+
+
+========================================================================
+TIME       : 2026-07-15 14:53:54
+LEVEL      : INFO
+STEP       : STEP2
+FILE       : C:\Users\buimi1\Documents\03_repos\TessyPilot\Tessy_Ref_Skoda_Compact\logger.ps1
+LINE       : 109
+FUNCTION   : Write-Info
+COMMAND    : 
+EXITCODE   : 0
+TIMEOUT    : 0
+MESSAGE    : Parse Tessy report: C:\Data\_DevTools\razorcat\TESSY_5.1\bin\report\TESSY_DetailsReport_ucDrv_CfgErrReport.html
+========================================================================
+
+
+========================================================================
+TIME       : 2026-07-15 14:53:54
+LEVEL      : WARN
+STEP       : STEP2
+FILE       : C:\Users\buimi1\Documents\03_repos\TessyPilot\Tessy_Ref_Skoda_Compact\logger.ps1
+LINE       : 132
+FUNCTION   : Write-WarningLog
+COMMAND    : 
+EXITCODE   : 0
+TIMEOUT    : 0
+MESSAGE    : No global variables found in HTML; parse XML fallback: C:\Data\_DevTools\razorcat\TESSY_5.1\bin\report\TESSY_DetailsReport_ucDrv_CfgErrReport.xml
+========================================================================
+
+
+========================================================================
+TIME       : 2026-07-15 14:53:54
+LEVEL      : INFO
+STEP       : STEP2
+FILE       : C:\Users\buimi1\Documents\03_repos\TessyPilot\Tessy_Ref_Skoda_Compact\logger.ps1
+LINE       : 109
+FUNCTION   : Write-Info
+COMMAND    : 
+EXITCODE   : 0
+TIMEOUT    : 0
+MESSAGE    : Interface exported: C:\Users\buimi1\Documents\03_repos\TessyPilot\Tessy_Ref_Skoda_Compact\interface\ucDrv_CfgErrReport_interface_info.txt. ExternalFunctions=1, LocalFunctions=0, ExternalVariables=0, GlobalVariables=0, Parameters=0
+========================================================================
+
+
+========================================================================
+TIME       : 2026-07-15 14:53:54
+LEVEL      : INFO
+STEP       : STEP2
+FILE       : C:\Users\buimi1\Documents\03_repos\TessyPilot\Tessy_Ref_Skoda_Compact\logger.ps1
+LINE       : 109
+FUNCTION   : Write-Info
+COMMAND    : 
+EXITCODE   : 0
+TIMEOUT    : 0
+MESSAGE    : Interface information saved: C:\Users\buimi1\Documents\03_repos\TessyPilot\Tessy_Ref_Skoda_Compact\interface\ucDrv_CfgErrReport_interface_info.txt
+========================================================================
+
+
+========================================================================
+TIME       : 2026-07-15 14:53:54
+LEVEL      : INFO
+STEP       : STEP2
+FILE       : C:\Users\buimi1\Documents\03_repos\TessyPilot\Tessy_Ref_Skoda_Compact\logger.ps1
+LINE       : 109
+FUNCTION   : Write-Info
+COMMAND    : 
+EXITCODE   : 0
+TIMEOUT    : 0
+MESSAGE    : External stub functions: BleM_ReportError
+========================================================================
+
+
+========================================================================
+TIME       : 2026-07-15 14:53:54
+LEVEL      : INFO
+STEP       : STEP2
+FILE       : C:\Users\buimi1\Documents\03_repos\TessyPilot\Tessy_Ref_Skoda_Compact\logger.ps1
+LINE       : 109
+FUNCTION   : Write-Info
+COMMAND    : 
+EXITCODE   : 0
+TIMEOUT    : 0
+MESSAGE    : Stub functions (1): BleM_ReportError
+========================================================================
+
+
+========================================================================
+TIME       : 2026-07-15 14:53:54
+LEVEL      : INFO
+STEP       : STEP2
+FILE       : C:\Users\buimi1\Documents\03_repos\TessyPilot\Tessy_Ref_Skoda_Compact\logger.ps1
+LINE       : 109
+FUNCTION   : Write-Info
+COMMAND    : 
+EXITCODE   : 0
+TIMEOUT    : 0
+MESSAGE    : All YAML stubs are already present.
+========================================================================
+
+
+========================================================================
+TIME       : 2026-07-15 14:53:54
+LEVEL      : INFO
+STEP       : STEP2
+FILE       : C:\Users\buimi1\Documents\03_repos\TessyPilot\Tessy_Ref_Skoda_Compact\logger.ps1
+LINE       : 109
+FUNCTION   : Write-Info
+COMMAND    : import C:\Users\buimi1\Documents\03_repos\TessyPilot\Tessy_Ref_Skoda_Compact\yml\ucDrv_CfgErrReport_export.yml
+EXITCODE   : 0
+TIMEOUT    : 0
+MESSAGE    : Import YAML attempt 1/2: C:\Users\buimi1\Documents\03_repos\TessyPilot\Tessy_Ref_Skoda_Compact\yml\ucDrv_CfgErrReport_export.yml
+========================================================================
+
+
+========================================================================
+TIME       : 2026-07-15 14:53:54
+LEVEL      : INFO
+STEP       : STEP2
+FILE       : C:\Users\buimi1\Documents\03_repos\TessyPilot\Tessy_Ref_Skoda_Compact\logger.ps1
+LINE       : 109
+FUNCTION   : Write-Info
+COMMAND    : 
+EXITCODE   : 0
+TIMEOUT    : 0
+MESSAGE    : Import attempt 1 exit code: 0
+========================================================================
+
+
+========================================================================
+TIME       : 2026-07-15 14:54:03
+LEVEL      : INFO
+STEP       : STEP2
+FILE       : C:\Users\buimi1\Documents\03_repos\TessyPilot\Tessy_Ref_Skoda_Compact\logger.ps1
+LINE       : 109
+FUNCTION   : Write-Info
+COMMAND    : import C:\Users\buimi1\Documents\03_repos\TessyPilot\Tessy_Ref_Skoda_Compact\yml\ucDrv_CfgErrReport_export.yml
+EXITCODE   : 0
+TIMEOUT    : 0
+MESSAGE    : Import YAML attempt 2/2: C:\Users\buimi1\Documents\03_repos\TessyPilot\Tessy_Ref_Skoda_Compact\yml\ucDrv_CfgErrReport_export.yml
+========================================================================
+
+
+========================================================================
+TIME       : 2026-07-15 14:54:03
+LEVEL      : INFO
+STEP       : STEP2
+FILE       : C:\Users\buimi1\Documents\03_repos\TessyPilot\Tessy_Ref_Skoda_Compact\logger.ps1
+LINE       : 109
+FUNCTION   : Write-Info
+COMMAND    : 
+EXITCODE   : 0
+TIMEOUT    : 0
+MESSAGE    : Import attempt 2 exit code: 0
+========================================================================
+
+
+========================================================================
+TIME       : 2026-07-15 14:54:03
+LEVEL      : INFO
+STEP       : STEP2
+FILE       : C:\Users\buimi1\Documents\03_repos\TessyPilot\Tessy_Ref_Skoda_Compact\logger.ps1
+LINE       : 109
+FUNCTION   : Write-Info
+COMMAND    : 
+EXITCODE   : 0
+TIMEOUT    : 0
+MESSAGE    : Stub configuration imported successfully.
+========================================================================
+
+
+========================================================================
+TIME       : 2026-07-15 14:54:03
+LEVEL      : INFO
+STEP       : STEP2
+FILE       : C:\Users\buimi1\Documents\03_repos\TessyPilot\Tessy_Ref_Skoda_Compact\logger.ps1
+LINE       : 109
+FUNCTION   : Write-Info
+COMMAND    : 
+EXITCODE   : 0
+TIMEOUT    : 0
+MESSAGE    : Import YAML already exists: C:\Users\buimi1\Documents\03_repos\TessyPilot\Tessy_Ref_Skoda_Compact\yml\ucDrv_CfgErrReport_import.yml
+========================================================================
+
+
+========================================================================
+TIME       : 2026-07-15 14:54:03
+LEVEL      : INFO
+STEP       : STEP2
+FILE       : C:\Users\buimi1\Documents\03_repos\TessyPilot\Tessy_Ref_Skoda_Compact\logger.ps1
+LINE       : 109
+FUNCTION   : Write-Info
+COMMAND    : 
+EXITCODE   : 0
+TIMEOUT    : 0
+MESSAGE    : Completed successfully.
+========================================================================
+

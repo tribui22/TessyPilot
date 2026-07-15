@@ -1,0 +1,252 @@
+
+========================================================================
+TIME       : 2026-07-15 14:49:44
+LEVEL      : INFO
+STEP       : STEP1
+FILE       : C:\Users\buimi1\Documents\03_repos\TessyPilot\Tessy_Ref_Skoda_Compact\logger.ps1
+LINE       : 109
+FUNCTION   : Write-Info
+COMMAND    : 
+EXITCODE   : 0
+TIMEOUT    : 0
+MESSAGE    : Started.
+========================================================================
+
+
+========================================================================
+TIME       : 2026-07-15 14:49:44
+LEVEL      : INFO
+STEP       : STEP1
+FILE       : C:\Users\buimi1\Documents\03_repos\TessyPilot\Tessy_Ref_Skoda_Compact\logger.ps1
+LINE       : 109
+FUNCTION   : Write-Info
+COMMAND    : 
+EXITCODE   : 0
+TIMEOUT    : 0
+MESSAGE    : Test Object: ucDrv_CfgErrReport
+========================================================================
+
+
+========================================================================
+TIME       : 2026-07-15 14:49:44
+LEVEL      : INFO
+STEP       : STEP1
+FILE       : C:\Users\buimi1\Documents\03_repos\TessyPilot\Tessy_Ref_Skoda_Compact\logger.ps1
+LINE       : 109
+FUNCTION   : Write-Info
+COMMAND    : 
+EXITCODE   : 0
+TIMEOUT    : 0
+MESSAGE    : Report Directory: C:\Data\_DevTools\razorcat\TESSY_5.1\bin\reports
+========================================================================
+
+
+========================================================================
+TIME       : 2026-07-15 14:49:44
+LEVEL      : INFO
+STEP       : STEP1
+FILE       : C:\Users\buimi1\Documents\03_repos\TessyPilot\Tessy_Ref_Skoda_Compact\logger.ps1
+LINE       : 109
+FUNCTION   : Write-Info
+COMMAND    : connect
+EXITCODE   : 0
+TIMEOUT    : 0
+MESSAGE    : Connecting to Tessy...
+========================================================================
+
+
+========================================================================
+TIME       : 2026-07-15 14:49:44
+LEVEL      : INFO
+STEP       : STEP1
+FILE       : C:\Users\buimi1\Documents\03_repos\TessyPilot\Tessy_Ref_Skoda_Compact\logger.ps1
+LINE       : 109
+FUNCTION   : Write-Info
+COMMAND    : 
+EXITCODE   : 0
+TIMEOUT    : 0
+MESSAGE    : Connected.
+========================================================================
+
+
+========================================================================
+TIME       : 2026-07-15 14:49:44
+LEVEL      : INFO
+STEP       : STEP1
+FILE       : C:\Users\buimi1\Documents\03_repos\TessyPilot\Tessy_Ref_Skoda_Compact\logger.ps1
+LINE       : 109
+FUNCTION   : Write-Info
+COMMAND    : 
+EXITCODE   : 0
+TIMEOUT    : 0
+MESSAGE    : Selecting Tessy context...
+========================================================================
+
+
+========================================================================
+TIME       : 2026-07-15 14:49:44
+LEVEL      : INFO
+STEP       : STEP1
+FILE       : C:\Users\buimi1\Documents\03_repos\TessyPilot\Tessy_Ref_Skoda_Compact\logger.ps1
+LINE       : 109
+FUNCTION   : Write-Info
+COMMAND    : 
+EXITCODE   : 0
+TIMEOUT    : 0
+MESSAGE    : Select Project : sk336_t2
+========================================================================
+
+
+========================================================================
+TIME       : 2026-07-15 14:49:44
+LEVEL      : INFO
+STEP       : STEP1
+FILE       : C:\Users\buimi1\Documents\03_repos\TessyPilot\Tessy_Ref_Skoda_Compact\logger.ps1
+LINE       : 109
+FUNCTION   : Write-Info
+COMMAND    : 
+EXITCODE   : 0
+TIMEOUT    : 0
+MESSAGE    : Select Test Collection : SK336_TC
+========================================================================
+
+
+========================================================================
+TIME       : 2026-07-15 14:49:44
+LEVEL      : INFO
+STEP       : STEP1
+FILE       : C:\Users\buimi1\Documents\03_repos\TessyPilot\Tessy_Ref_Skoda_Compact\logger.ps1
+LINE       : 109
+FUNCTION   : Write-Info
+COMMAND    : 
+EXITCODE   : 0
+TIMEOUT    : 0
+MESSAGE    : Select Folder: BSW
+========================================================================
+
+
+========================================================================
+TIME       : 2026-07-15 14:49:44
+LEVEL      : INFO
+STEP       : STEP1
+FILE       : C:\Users\buimi1\Documents\03_repos\TessyPilot\Tessy_Ref_Skoda_Compact\logger.ps1
+LINE       : 109
+FUNCTION   : Write-Info
+COMMAND    : select-module ucDrv_2E_Cfg
+EXITCODE   : 0
+TIMEOUT    : 0
+MESSAGE    : Select Module (direct): ucDrv_2E_Cfg
+========================================================================
+
+
+========================================================================
+TIME       : 2026-07-15 14:49:45
+LEVEL      : INFO
+STEP       : STEP1
+FILE       : C:\Users\buimi1\Documents\03_repos\TessyPilot\Tessy_Ref_Skoda_Compact\logger.ps1
+LINE       : 109
+FUNCTION   : Write-Info
+COMMAND    : 
+EXITCODE   : 0
+TIMEOUT    : 0
+MESSAGE    : Select Test Object : ucDrv_CfgErrReport
+========================================================================
+
+
+========================================================================
+TIME       : 2026-07-15 14:49:45
+LEVEL      : INFO
+STEP       : STEP1
+FILE       : C:\Users\buimi1\Documents\03_repos\TessyPilot\Tessy_Ref_Skoda_Compact\logger.ps1
+LINE       : 109
+FUNCTION   : Write-Info
+COMMAND    : 
+EXITCODE   : 0
+TIMEOUT    : 0
+MESSAGE    : Tessy context selection completed.
+========================================================================
+
+
+========================================================================
+TIME       : 2026-07-15 14:49:45
+LEVEL      : INFO
+STEP       : STEP1
+FILE       : C:\Users\buimi1\Documents\03_repos\TessyPilot\Tessy_Ref_Skoda_Compact\logger.ps1
+LINE       : 109
+FUNCTION   : Write-Info
+COMMAND    : 
+EXITCODE   : 0
+TIMEOUT    : 0
+MESSAGE    : Deleting old reports for 'ucDrv_CfgErrReport'.
+========================================================================
+
+
+========================================================================
+TIME       : 2026-07-15 14:49:45
+LEVEL      : INFO
+STEP       : STEP1
+FILE       : C:\Users\buimi1\Documents\03_repos\TessyPilot\Tessy_Ref_Skoda_Compact\logger.ps1
+LINE       : 109
+FUNCTION   : Write-Info
+COMMAND    : 
+EXITCODE   : 0
+TIMEOUT    : 0
+MESSAGE    : Batch file created: C:\Users\buimi1\Documents\03_repos\TessyPilot\Tessy_Ref_Skoda_Compact\tbs_files\generate_report_ucDrv_CfgErrReport_html.tbs
+========================================================================
+
+
+========================================================================
+TIME       : 2026-07-15 14:49:45
+LEVEL      : INFO
+STEP       : STEP1
+FILE       : C:\Users\buimi1\Documents\03_repos\TessyPilot\Tessy_Ref_Skoda_Compact\logger.ps1
+LINE       : 109
+FUNCTION   : Write-Info
+COMMAND    : -animate exec-test C:\Users\buimi1\Documents\03_repos\TessyPilot\Tessy_Ref_Skoda_Compact\tbs_files\generate_report_ucDrv_CfgErrReport_html.tbs
+EXITCODE   : 0
+TIMEOUT    : 0
+MESSAGE    : Execute Tessy batch: C:\Users\buimi1\Documents\03_repos\TessyPilot\Tessy_Ref_Skoda_Compact\tbs_files\generate_report_ucDrv_CfgErrReport_html.tbs
+========================================================================
+
+
+========================================================================
+TIME       : 2026-07-15 14:50:03
+LEVEL      : INFO
+STEP       : STEP1
+FILE       : C:\Users\buimi1\Documents\03_repos\TessyPilot\Tessy_Ref_Skoda_Compact\logger.ps1
+LINE       : 109
+FUNCTION   : Write-Info
+COMMAND    : 
+EXITCODE   : 0
+TIMEOUT    : 0
+MESSAGE    : Coverage: C0=0% C1=0% Total=1 Passed=1 Failed=0
+========================================================================
+
+
+========================================================================
+TIME       : 2026-07-15 14:50:03
+LEVEL      : INFO
+STEP       : STEP1
+FILE       : C:\Users\buimi1\Documents\03_repos\TessyPilot\Tessy_Ref_Skoda_Compact\logger.ps1
+LINE       : 109
+FUNCTION   : Write-Info
+COMMAND    : 
+EXITCODE   : 0
+TIMEOUT    : 0
+MESSAGE    : Coverage status saved: C:\Users\buimi1\Documents\03_repos\TessyPilot\Tessy_Ref_Skoda_Compact\json_files\ucDrv_CfgErrReport_coverage_status.json
+========================================================================
+
+
+========================================================================
+TIME       : 2026-07-15 14:50:03
+LEVEL      : INFO
+STEP       : STEP1
+FILE       : C:\Users\buimi1\Documents\03_repos\TessyPilot\Tessy_Ref_Skoda_Compact\logger.ps1
+LINE       : 109
+FUNCTION   : Write-Info
+COMMAND    : 
+EXITCODE   : 0
+TIMEOUT    : 0
+MESSAGE    : Completed successfully.
+========================================================================
+

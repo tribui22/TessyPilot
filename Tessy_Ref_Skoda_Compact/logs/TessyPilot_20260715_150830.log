@@ -1,0 +1,98 @@
+
+========================================================================
+TIME       : 2026-07-15 15:08:30
+LEVEL      : INFO
+STEP       : STEP9
+FILE       : C:\Users\buimi1\Documents\03_repos\TessyPilot\Tessy_Ref_Skoda_Compact\logger.ps1
+LINE       : 109
+FUNCTION   : Write-Info
+COMMAND    : 
+EXITCODE   : 0
+TIMEOUT    : 0
+MESSAGE    : Started.
+========================================================================
+
+
+========================================================================
+TIME       : 2026-07-15 15:08:30
+LEVEL      : INFO
+STEP       : STEP9
+FILE       : C:\Users\buimi1\Documents\03_repos\TessyPilot\Tessy_Ref_Skoda_Compact\logger.ps1
+LINE       : 109
+FUNCTION   : Write-Info
+COMMAND    : 
+EXITCODE   : 0
+TIMEOUT    : 0
+MESSAGE    : Test Object: ucDrv_CfgErrReport
+========================================================================
+
+
+========================================================================
+TIME       : 2026-07-15 15:08:30
+LEVEL      : INFO
+STEP       : STEP9
+FILE       : C:\Users\buimi1\Documents\03_repos\TessyPilot\Tessy_Ref_Skoda_Compact\logger.ps1
+LINE       : 109
+FUNCTION   : Write-Info
+COMMAND    : 
+EXITCODE   : 0
+TIMEOUT    : 0
+MESSAGE    : Module: ucDrv_2E_Cfg
+========================================================================
+
+
+========================================================================
+TIME       : 2026-07-15 15:08:30
+LEVEL      : INFO
+STEP       : STEP9
+FILE       : C:\Users\buimi1\Documents\03_repos\TessyPilot\Tessy_Ref_Skoda_Compact\logger.ps1
+LINE       : 109
+FUNCTION   : Write-Info
+COMMAND    : 
+EXITCODE   : 0
+TIMEOUT    : 0
+MESSAGE    : HTML report: C:\Data\_DevTools\razorcat\TESSY_5.1\bin\report\TESSY_DetailsReport_ucDrv_CfgErrReport.html
+========================================================================
+
+
+========================================================================
+TIME       : 2026-07-15 15:08:30
+LEVEL      : INFO
+STEP       : STEP9
+FILE       : C:\Users\buimi1\Documents\03_repos\TessyPilot\Tessy_Ref_Skoda_Compact\logger.ps1
+LINE       : 109
+FUNCTION   : Write-Info
+COMMAND    : 
+EXITCODE   : 0
+TIMEOUT    : 0
+MESSAGE    : XML report: C:\Data\_DevTools\razorcat\TESSY_5.1\bin\report\TESSY_DetailsReport_ucDrv_CfgErrReport.xml
+========================================================================
+
+
+========================================================================
+TIME       : 2026-07-15 15:08:30
+LEVEL      : INFO
+STEP       : STEP9
+FILE       : C:\Users\buimi1\Documents\03_repos\TessyPilot\Tessy_Ref_Skoda_Compact\logger.ps1
+LINE       : 109
+FUNCTION   : Write-Info
+COMMAND    : 
+EXITCODE   : 0
+TIMEOUT    : 0
+MESSAGE    : Status saved: C:\Users\buimi1\Documents\03_repos\TessyPilot\Tessy_Ref_Skoda_Compact\json_files\ucDrv_CfgErrReport_coverage_status.json
+========================================================================
+
+
+========================================================================
+TIME       : 2026-07-15 15:08:30
+LEVEL      : INFO
+STEP       : STEP9
+FILE       : C:\Users\buimi1\Documents\03_repos\TessyPilot\Tessy_Ref_Skoda_Compact\logger.ps1
+LINE       : 109
+FUNCTION   : Write-Info
+COMMAND    : 
+EXITCODE   : 0
+TIMEOUT    : 0
+MESSAGE    : Completed successfully.
+========================================================================
+

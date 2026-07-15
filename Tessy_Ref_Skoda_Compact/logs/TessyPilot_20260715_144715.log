@@ -1,0 +1,42 @@
+
+========================================================================
+TIME       : 2026-07-15 14:47:15
+LEVEL      : INFO
+STEP       : STEP6
+FILE       : C:\Users\buimi1\Documents\03_repos\TessyPilot\Tessy_Ref_Skoda_Compact\logger.ps1
+LINE       : 109
+FUNCTION   : Write-Info
+COMMAND    : 
+EXITCODE   : 0
+TIMEOUT    : 0
+MESSAGE    : Started.
+========================================================================
+
+
+========================================================================
+TIME       : 2026-07-15 14:47:15
+LEVEL      : INFO
+STEP       : STEP6
+FILE       : C:\Users\buimi1\Documents\03_repos\TessyPilot\Tessy_Ref_Skoda_Compact\logger.ps1
+LINE       : 109
+FUNCTION   : Write-Info
+COMMAND    : 
+EXITCODE   : 0
+TIMEOUT    : 0
+MESSAGE    : Testcase plan already exists: C:\Users\buimi1\Documents\03_repos\TessyPilot\Tessy_Ref_Skoda_Compact\json_testcase\ucDrv_CfgErrReport_testcase_plan.json; TotalTestCases=1
+========================================================================
+
+
+========================================================================
+TIME       : 2026-07-15 14:47:15
+LEVEL      : INFO
+STEP       : STEP6
+FILE       : C:\Users\buimi1\Documents\03_repos\TessyPilot\Tessy_Ref_Skoda_Compact\logger.ps1
+LINE       : 109
+FUNCTION   : Write-Info
+COMMAND    : 
+EXITCODE   : 0
+TIMEOUT    : 0
+MESSAGE    : Completed successfully.
+========================================================================
+
