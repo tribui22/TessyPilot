@@ -10,7 +10,7 @@
 # Configuration is loaded by common.ps1.
 # ============================================================================
 
-. (Join-Path $PSScriptRoot "..\common.ps1")
+. (Join-Path $PSScriptRoot "..\helpers\common.ps1")
 
 $STEP       = "STEP3"
 $TestObject = $Config.TestObjects

@@ -11,7 +11,7 @@
 [CmdletBinding()]
 param()
 
-. (Join-Path $PSScriptRoot "..\common.ps1")
+. (Join-Path $PSScriptRoot "..\helpers\common.ps1")
 
 $STEP       = 'STEP10'
 $TestObject = $Config.TestObjects

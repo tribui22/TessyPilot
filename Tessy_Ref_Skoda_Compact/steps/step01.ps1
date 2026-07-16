@@ -14,7 +14,7 @@
 #   - Reusable operations are delegated to common.ps1 where behavior matches.
 # ============================================================================
 
-. (Join-Path $PSScriptRoot "..\common.ps1")
+. (Join-Path $PSScriptRoot "..\helpers\common.ps1")
 
 $STEP          = "STEP1"
 $Module        = $Config.Module

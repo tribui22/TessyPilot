@@ -6,7 +6,7 @@
 # Step 2b interface parsing is integrated through common.ps1 APIs.
 # ============================================================================
 
-. (Join-Path $PSScriptRoot "..\common.ps1")
+. (Join-Path $PSScriptRoot "..\helpers\common.ps1")
 
 $STEP           = "STEP2"
 $TestObject     = $Config.TestObjects

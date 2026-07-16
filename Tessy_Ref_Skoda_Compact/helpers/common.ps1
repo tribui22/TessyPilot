@@ -4,8 +4,8 @@
 # Common utilities for Tessy Automation Framework
 # ============================================================================
 
-. "$PSScriptRoot\helpers\config.ps1"
-. "$PSScriptRoot\helpers\logger.ps1"
+. (Join-Path $PSScriptRoot "config.ps1")
+. (Join-Path $PSScriptRoot "logger.ps1")
 
 # ----------------------------------------------------------------------------
 # Banner

@@ -2,7 +2,7 @@
 # STEP 07C - Inputs / Outputs / Calltrace Renderer
 # ============================================================================
 # Dot-sourced by step07_generate_testcases.ps1.
-# Self-contained: no secondary engine/implementation file is required.
+# Windows PowerShell 5.1 compatible. No secondary engine is required.
 # ============================================================================
 
 function ConvertTo-Step07Bool {
@@ -19,14 +19,17 @@ function ConvertTo-Step07Bool {
 function Get-Step07DefaultValue {
     param($Variable)
 
-    $decl = [string](if ($Variable.FullDeclaration) { $Variable.FullDeclaration } else { $Variable.Type })
+    $decl = [string]$Variable.Type
+    if ($Variable.FullDeclaration) {
+        $decl = [string]$Variable.FullDeclaration
+    }
+
     if ($decl -match '\b(bool|boolean_t)\b') { return 'FALSE' }
     if ($decl -match '\b(float|double)\b')   { return '0.0' }
     if ($decl -match '\*')                   { return '0' }
     return '0'
 }
 
-# Public compatibility API retained.
 function Get-VarDefaultValue {
     param($VarInfo, [hashtable]$OverrideMap = @{})
     if ($OverrideMap.ContainsKey([string]$VarInfo.Name)) {
@@ -36,26 +39,31 @@ function Get-VarDefaultValue {
 }
 
 function Add-Step07PointerMembers {
-    param(
-        [hashtable]$Map,
-        [object[]]$Members,
-        [string]$Prefix = ''
-    )
+    param([hashtable]$Map, [object[]]$Members, [string]$Prefix = '')
 
     foreach ($member in @($Members)) {
         if ($null -eq $member) { continue }
-        $name = if ($member.Name) { [string]$member.Name } elseif ($member.Path) { [string]$member.Path } else { '' }
+
+        $name = ''
+        if ($member.Name) { $name = [string]$member.Name }
+        elseif ($member.Path) { $name = [string]$member.Path }
         if (-not $name) { continue }
-        $path = if ($Prefix) { "$Prefix.$name" } else { $name }
 
-        if ($member.PSObject.Properties.Name -contains 'Value') { $Map[$path] = [string]$member.Value }
-        elseif ($member.PSObject.Properties.Name -contains 'V') { $Map[$path] = [string]$member.V }
+        $path = $name
+        if ($Prefix) { $path = "$Prefix.$name" }
 
-        if ($member.Members) { Add-Step07PointerMembers $Map @($member.Members) $path }
+        if ($member.PSObject.Properties.Name -contains 'Value') {
+            $Map[$path] = [string]$member.Value
+        } elseif ($member.PSObject.Properties.Name -contains 'V') {
+            $Map[$path] = [string]$member.V
+        }
+
+        if ($member.Members) {
+            Add-Step07PointerMembers $Map @($member.Members) $path
+        }
     }
 }
 
-# Public compatibility API retained.
 function Parse-SetValuesOverrides {
     param([object[]]$SetValues = @())
 
@@ -71,36 +79,55 @@ function Parse-SetValuesOverrides {
             $name = [string]$entry.PointerName
             $members = @{}
             Add-Step07PointerMembers $members @($entry.Members)
+
+            $dynamicObject = "target_$name"
+            if ($entry.DynamicObject) { $dynamicObject = [string]$entry.DynamicObject }
+
             $script:Step07PointerObjects[$name] = @{
                 Allocate      = ConvertTo-Step07Bool $entry.Allocate $true
-                DynamicObject = if ($entry.DynamicObject) { [string]$entry.DynamicObject } else { "target_$name" }
+                DynamicObject = $dynamicObject
                 Members       = $members
             }
             continue
         }
 
-        $text = if ($entry -is [string]) {
-            $entry.Trim()
+        $text = ''
+        if ($entry -is [string]) {
+            $text = $entry.Trim()
         } else {
-            $path = if ($entry.Path) { $entry.Path } elseif ($entry.N) { $entry.N } elseif ($entry.Name) { $entry.Name } else { $null }
-            $value = if ($entry.PSObject.Properties.Name -contains 'Value') { $entry.Value } elseif ($entry.PSObject.Properties.Name -contains 'V') { $entry.V } else { $null }
-            if ($path -and $null -ne $value) { "$path = $value" } else { '' }
+            $path = $null
+            if ($entry.Path) { $path = $entry.Path }
+            elseif ($entry.N) { $path = $entry.N }
+            elseif ($entry.Name) { $path = $entry.Name }
+
+            $value = $null
+            if ($entry.PSObject.Properties.Name -contains 'Value') { $value = $entry.Value }
+            elseif ($entry.PSObject.Properties.Name -contains 'V') { $value = $entry.V }
+
+            if ($path -and $null -ne $value) { $text = "$path = $value" }
         }
+
         if (-not $text) { continue }
         $text = $text -replace '\s*->\s*', '.'
 
         if ($text -match '^([A-Za-z_]\w*)\[(\d+)\]\s*=\s*(.+)$') {
             $base = $Matches[1]
-            if (-not $script:Step07IndexedValues.ContainsKey($base)) { $script:Step07IndexedValues[$base] = @{} }
+            if (-not $script:Step07IndexedValues.ContainsKey($base)) {
+                $script:Step07IndexedValues[$base] = @{}
+            }
             $script:Step07IndexedValues[$base][$Matches[2]] = $Matches[3].Trim()
             continue
         }
+
         if ($text -match '^([A-Za-z_]\w*)\.([A-Za-z0-9_.]+)\s*=\s*(.+)$') {
             $base = $Matches[1]
-            if (-not $script:Step07MemberValues.ContainsKey($base)) { $script:Step07MemberValues[$base] = @{} }
+            if (-not $script:Step07MemberValues.ContainsKey($base)) {
+                $script:Step07MemberValues[$base] = @{}
+            }
             $script:Step07MemberValues[$base][$Matches[2]] = $Matches[3].Trim()
             continue
         }
+
         if ($text -match '^(?:[A-Za-z_]\w*::)?([A-Za-z_]\w*)(?:#\d+)?(?:\[\d+\])?\s*=\s*(.+)$') {
             $result[$Matches[1]] = $Matches[2].Trim()
         }
@@ -108,20 +135,29 @@ function Parse-SetValuesOverrides {
     return $result
 }
 
-# Public compatibility API retained for legacy condition strings.
 function Resolve-ConditionValue {
     param([string]$CondExpr, [string]$VarName, [bool]$IsTrue, [string]$VarDecl)
-    if ($VarDecl -match '\b(bool|boolean_t)\b') { return $(if ($IsTrue) { 'TRUE' } else { 'FALSE' }) }
-    if ($CondExpr -match "(?:0U?\s*==\s*$([regex]::Escape($VarName))|$([regex]::Escape($VarName))\s*==\s*0U?)") {
-        return $(if ($IsTrue) { '0' } else { '1' })
+
+    if ($VarDecl -match '\b(bool|boolean_t)\b') {
+        if ($IsTrue) { return 'TRUE' }
+        return 'FALSE'
     }
-    return $(if ($IsTrue) { '1' } else { '0' })
+
+    if ($CondExpr -match "(?:0U?\s*==\s*$([regex]::Escape($VarName))|$([regex]::Escape($VarName))\s*==\s*0U?)") {
+        if ($IsTrue) { return '0' }
+        return '1'
+    }
+
+    if ($IsTrue) { return '1' }
+    return '0'
 }
 
 function Add-Step07ScalarOrArray {
     param([Text.StringBuilder]$Builder, $Variable, [hashtable]$Overrides, [int]$Indent = 4)
 
-    $name = if ($Variable.FullName) { [string]$Variable.FullName } else { [string]$Variable.Name }
+    $name = [string]$Variable.Name
+    if ($Variable.FullName) { $name = [string]$Variable.FullName }
+
     $short = [string]$Variable.Name
     $tabs = "`t" * $Indent
     $default = Get-VarDefaultValue $Variable $Overrides
@@ -141,21 +177,29 @@ function Add-Step07Pointer {
     param([Text.StringBuilder]$Builder, $Variable, [hashtable]$Overrides, [int]$Indent = 4)
 
     $name = [string]$Variable.Name
-    $renderedName = if ($Variable.FullName) { [string]$Variable.FullName } else { $name }
-    $spec = if ($script:Step07PointerObjects.ContainsKey($name)) { $script:Step07PointerObjects[$name] } else { $null }
-    $tabs = "`t" * $Indent
+    $renderedName = $name
+    if ($Variable.FullName) { $renderedName = [string]$Variable.FullName }
 
+    $spec = $null
+    if ($script:Step07PointerObjects.ContainsKey($name)) {
+        $spec = $script:Step07PointerObjects[$name]
+    }
+
+    $tabs = "`t" * $Indent
     if ($spec -and -not $spec.Allocate) {
         [void]$Builder.AppendLine("$tabs$renderedName = 0")
         return
     }
 
-    $target = if ($spec) { $spec.DynamicObject } else { "target_$name" }
+    $target = "target_$name"
+    if ($spec) { $target = $spec.DynamicObject }
     [void]$Builder.AppendLine("$tabs$renderedName = $target[0]")
 
     $members = @{}
     if ($script:Step07MemberValues.ContainsKey($name)) {
-        foreach ($key in $script:Step07MemberValues[$name].Keys) { $members[$key] = $script:Step07MemberValues[$name][$key] }
+        foreach ($key in $script:Step07MemberValues[$name].Keys) {
+            $members[$key] = $script:Step07MemberValues[$name][$key]
+        }
     }
     if ($spec) {
         foreach ($key in $spec.Members.Keys) { $members[$key] = $spec.Members[$key] }
@@ -174,7 +218,9 @@ function Add-Step07Inputs {
 
     [void]$Builder.AppendLine("`t`t`t`$inputs {")
     foreach ($variable in $inputs) {
-        $decl = [string](if ($variable.FullDeclaration) { $variable.FullDeclaration } else { $variable.Type })
+        $decl = [string]$variable.Type
+        if ($variable.FullDeclaration) { $decl = [string]$variable.FullDeclaration }
+
         if ($decl -match '\*') { Add-Step07Pointer $Builder $variable $Overrides }
         else { Add-Step07ScalarOrArray $Builder $variable $Overrides }
     }
@@ -191,7 +237,8 @@ function Add-Step07Outputs {
 
     [void]$Builder.AppendLine("`t`t`t`$outputs {")
     if ($hasReturn -and $script:returnType -notmatch '\b(struct|union)\b') {
-        $value = if ($Overrides.ContainsKey('return')) { $Overrides['return'] } else { '0' }
+        $value = '0'
+        if ($Overrides.ContainsKey('return')) { $value = $Overrides['return'] }
         [void]$Builder.AppendLine("`t`t`t`treturn = $value")
     }
     foreach ($variable in $outputs) {
@@ -213,7 +260,7 @@ function Build-TCInputsOutputs {
     $name = ($TCDescription -replace '^TC\d+:\s*','' -replace '[^\x20-\x7E]','?').Trim()
     if ($name.Length -gt 120) { $name = $name.Substring(0,120) }
 
-    $builder = [Text.StringBuilder]::new()
+    $builder = New-Object System.Text.StringBuilder
     [void]$builder.AppendLine("`t`t`$teststep 1.$StepNum {")
     [void]$builder.AppendLine("`t`t`t`$name `"$name`"")
 
@@ -224,12 +271,18 @@ function Build-TCInputsOutputs {
             if (-not $script:allFunctions.ContainsKey($stubName)) {
                 $script:allFunctions[$stubName] = @{Name=$stubName;ReturnType='int';Parameters='void'}
             }
+
             $stub = $script:allFunctions[$stubName]
             if ($stub.ReturnType -eq 'void') { continue }
+
             $raw = $stubOverrides[$stubName]
-            $body = if ($raw -and $raw.StartsWith('__BODY__|')) { $raw.Substring(9) }
-                    elseif ($raw) { "return $(Normalize-StubReturnValue $stub.ReturnType $raw);" }
-                    else { Get-StubDefaultReturn $stub.ReturnType }
+            $body = Get-StubDefaultReturn $stub.ReturnType
+            if ($raw -and $raw.StartsWith('__BODY__|')) {
+                $body = $raw.Substring(9)
+            } elseif ($raw) {
+                $body = "return $(Normalize-StubReturnValue $stub.ReturnType $raw);"
+            }
+
             [void]$builder.AppendLine("`t`t`t`t$($stub.ReturnType) $($stub.Name)($($stub.Parameters)) '''")
             if ($body) { [void]$builder.AppendLine("`t`t`t`t`t$body") }
             [void]$builder.AppendLine("`t`t`t`t'''")

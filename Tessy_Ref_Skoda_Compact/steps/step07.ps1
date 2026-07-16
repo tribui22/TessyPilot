@@ -20,7 +20,7 @@ param(
     [switch]$ForceCreate
 )
 
-. (Join-Path $PSScriptRoot "..\common.ps1")
+. (Join-Path $PSScriptRoot "..\helpers\common.ps1")
 
 $STEP       = "STEP7"
 $TestObject = $Config.TestObjects
