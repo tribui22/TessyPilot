@@ -178,6 +178,16 @@ $returnType = (Get-Section $interfaceContent 'RETURN TYPE' @('PARAMETERS','EXTER
 if (-not $returnType) { $returnType = 'void' }
 
 $script:rawFunctionSource = if (Test-Path $rawFunctionFile) { Get-Content $rawFunctionFile -Raw } else { '' }
+
+# Fallback: if RETURN TYPE section is missing/empty, derive from saved function signature.
+if ($returnType -eq 'void' -and $script:rawFunctionSource -match '(?ms)^\s*([A-Za-z_][A-Za-z0-9_\s\*]+?)\s+' + [regex]::Escape($TestObject) + '\s*\(') {
+    $sigReturn = ($Matches[1] -replace '\s+', ' ').Trim()
+    if ($sigReturn -and $sigReturn -ne 'void') {
+        $returnType = $sigReturn
+        Write-Host "[PLAN] Return type fallback from source: $returnType" -ForegroundColor Cyan
+    }
+}
+
 $functionBody = if ($script:rawFunctionSource -match '(?ms)^[^{]*\{(.*)\}\s*$') { $Matches[1] } else { '' }
 
 $mainPlan = Get-Content $planFile -Raw -Encoding UTF8 | ConvertFrom-Json

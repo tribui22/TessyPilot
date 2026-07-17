@@ -67,17 +67,54 @@ function Get-Step07Registry {
     return @{}
 }
 
-function Get-StubDefaultReturn {
-    param([string]$ReturnType)
+function Get-StubDefaultReturn
+{
+    param(
+        [AllowEmptyString()]
+        [string]$ReturnType
+    )
 
-    $type = if ($null -eq $ReturnType) { '' } else { $ReturnType.Trim() }
-    switch -Regex ($type) {
-        '^void$'                   { return '' }
-        '\*'                      { return 'return (void *)0;' }
-        '\b(float|double)\b'      { return 'return 0.0;' }
-        '^struct\s+(\w+)'         { return "struct $($Matches[1]) ret_val; (void)memset(&ret_val, 0, sizeof(ret_val)); return ret_val;" }
-        default                    { return 'return 0;' }
+    $type = ""
+
+    if($null -ne $ReturnType)
+    {
+        $type = (
+            $ReturnType -replace "\s+", " "
+        ).Trim()
     }
+
+    # Void functions must not return a value.
+    if($type -match "^void$")
+    {
+        return ""
+    }
+
+    # Pointer return.
+    if($type -match "\*")
+    {
+        return "return (void *)0;"
+    }
+
+    # Floating-point return.
+    if($type -match "\b(float|double)\b")
+    {
+        return "return 0.0;"
+    }
+
+    # Struct return.
+    if($type -match "^struct\s+([A-Za-z_]\w*)")
+    {
+        $typeName = $Matches[1]
+
+        return (
+            "struct $typeName ret_val; " +
+            "(void)memset(&ret_val, 0, sizeof(ret_val)); " +
+            "return ret_val;"
+        )
+    }
+
+    # Integer, enum, boolean, and typedef return.
+    return "return 0;"
 }
 
 function Normalize-StubReturnValue {

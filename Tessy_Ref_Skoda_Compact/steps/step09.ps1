@@ -19,8 +19,8 @@ $JsonDir    = Join-Path $WorkingDir 'json_files'
 
 function Get-Step09ReportPaths {
     $reportRoots = @(
-        (Join-Path $ScriptRoot 'report'),
-        (Join-Path (Split-Path -Parent $ScriptRoot) 'report'),
+        (Join-Path $ScriptRoot 'reports'),
+        (Join-Path (Split-Path -Parent $ScriptRoot) 'reports'),
         $WorkingDir
     ) | Select-Object -Unique
 

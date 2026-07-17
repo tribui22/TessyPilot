@@ -78,10 +78,21 @@ function Parse-SetValuesOverrides {
         if ($entry -isnot [string] -and $entry.PointerName) {
             $name = [string]$entry.PointerName
             $members = @{}
+            
+            if ($script:Step07PointerObjects.ContainsKey($name)) {
+                foreach ($key in $script:Step07PointerObjects[$name].Members.Keys) {
+                    $members[$key] = $script:Step07PointerObjects[$name].Members[$key]
+                }
+            }
+            
             Add-Step07PointerMembers $members @($entry.Members)
 
             $dynamicObject = "target_$name"
-            if ($entry.DynamicObject) { $dynamicObject = [string]$entry.DynamicObject }
+            if ($entry.DynamicObject) { 
+                $dynamicObject = [string]$entry.DynamicObject 
+            } elseif ($script:Step07PointerObjects.ContainsKey($name)) {
+                $dynamicObject = $script:Step07PointerObjects[$name].DynamicObject
+            }
 
             $script:Step07PointerObjects[$name] = @{
                 Allocate      = ConvertTo-Step07Bool $entry.Allocate $true
@@ -242,6 +253,7 @@ function Add-Step07Outputs {
         [void]$Builder.AppendLine("`t`t`t`treturn = $value")
     }
     foreach ($variable in $outputs) {
+        if ($variable.Name -eq $script:returnType -or $variable.Name -eq 'return') { continue }
         Add-Step07ScalarOrArray $Builder $variable @{}
     }
     [void]$Builder.AppendLine("`t`t`t}")

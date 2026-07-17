@@ -28,7 +28,7 @@ $STEP       = "STEP6"
 $TestObject = $Config.TestObjects
 $WorkingDir = $Config.WorkDir
 
-$guideFile = Join-Path $WorkingDir "steps\STEP6_TESTCASE_GENERATION_GUIDE.md"
+$guideFile = Join-Path $WorkingDir "steps\_1_STEP6_TESTCASE_GENERATION_GUIDE_UPD.md"
 $templateFile = Join-Path $WorkingDir "steps\STEP6_AGENT_PROMPT_TEMPLATE.md"
 
 Show-Banner "STEP 6 : PREPARE COPILOT TESTCASE GENERATION"
