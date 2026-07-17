@@ -157,6 +157,52 @@ function Invoke-OptionalReportAddOn {
     }
 }
 
+function Invoke-TessyTsSlavePatch {
+    [CmdletBinding()]
+    param()
+
+    while ($true) {
+        $answer = (Read-Host 'Patch broken ts_slave.out before running pipeline? [Y/N]').Trim()
+
+        switch -Regex ($answer) {
+
+            '^(?i:y|yes)$' {
+
+                $patcher = Join-Path (Split-Path $runnerRoot -Parent) 'patcher\patch_ts_slave.ps1'
+
+                if (-not (Test-Path $patcher)) {
+                    throw "Patcher not found: $patcher"
+                }
+
+                Write-Host ""
+                Write-Host "[PATCH] Running TESSY patch..." -ForegroundColor Cyan
+
+                & $powerShellExecutable `
+                    -NoLogo `
+                    -NoProfile `
+                    -ExecutionPolicy Bypass `
+                    -File $patcher
+
+                if ($LASTEXITCODE -ne 0) {
+                    throw "Patch failed."
+                }
+
+                Write-Host "[PATCH] Completed." -ForegroundColor Green
+                return
+            }
+
+            '^(?i:n|no)$' {
+                Write-Host '[PATCH] Skipped.' -ForegroundColor DarkGray
+                return
+            }
+
+            default {
+                Write-Host 'Please enter Y or N.' -ForegroundColor Yellow
+            }
+        }
+    }
+}
+
 $line = '=' * 80
 $results = New-Object 'System.Collections.Generic.List[object]'
 $pipelineStart = Get-Date
@@ -170,6 +216,7 @@ Write-Host $line -ForegroundColor Cyan
 
 try {
     Invoke-OptionalReportAddOn
+    Invoke-TessyTsSlavePatch
 } catch {
     Write-Host "`n[ERROR] $($_.Exception.Message)" -ForegroundColor Red
     exit 1
